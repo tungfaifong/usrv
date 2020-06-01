@@ -1,6 +1,7 @@
 .vs
 Debug
 3rdparty
+build
 *.sln
 *.vcxproj
 *.filters
