@@ -1,88 +1,47 @@
 // Copyright (c) 2019-2020 TungFai Fong 
 
-#include <time.h>
-
-#ifdef __unix__
-
-struct tm * LocalTime(const time_t * timer, struct tm * buf)
-{
-    return localtime_r(timer, buf);
-}
-
-#elif _WIN32 // __unix__
-
-errno_t __CRTDECL LocalTime(const time_t * timer, struct tm * buf)
-{
-    return localtime_s(buf, timer);
-}
-
-#endif // _WIN32
+#include "time.h"
 
 namespace usrv
 {
-    static constexpr int MINUTE_SEC = 60;
-    static constexpr int HOUR_SEC = 60 * MINUTE_SEC;
-    static constexpr int DAY_SEC = 24 * HOUR_SEC;
-    static constexpr int WEEK_SEC = 7 * DAY_SEC;
-
-#define CHECK_SECOND(sec)\
-    {\
-        if (sec < 0 || sec >= 60)\
-        {\
-            return -1;\
-        }\
-    }
-
-#define CHECK_MINUTE(min)\
-    {\
-        if (min < 0 || min >= 60)\
-        {\
-            return -1;\
-        }\
-    }
-
-#define CHECK_HOUR(hour)\
-    {\
-        if (hour < 0 || hour >= 24)\
-        {\
-            return -1;\
-        }\
-    }
-
-#define CHECK_WDAY(wday)\
-    {\
-        if (wday < 0 || wday >= 7)\
-        {\
-            return -1;\
-        }\
-    }
-
-#define CHECK_MONTH(month)\
-    {\
-        if (month < 0 || month >= 12)\
-        {\
-            return -1; \
-        }\
-    }
-
-#define CHECK_MDAY(mday, month_day)\
-    {\
-        if (mday < 0 || mday >= month_day - 1)\
-        {\
-            return -1;\
-        }\
-    }
-
-    inline int GetMonthDay(int year, int month)
+    inline bool CheckSecond(int sec)
     {
-        CHECK_MONTH(month);
+        return sec >= 0 && sec < 60;
+    }
 
-        static constexpr int MONTH_DAY[12] = { 31,-1,31,30,31,30,31,31,30,31,30,31 };
-        int month_day = MONTH_DAY[month];
+    inline bool CheckMinute(int min)
+    {
+        return min >= 0 && min < 60;
+    }
+
+    inline bool CheckHour(int hour)
+    {
+        return hour >= 0 && hour < 24;
+    }
+
+    inline bool CheckWDay(int wday)
+    {
+        return wday >= 0 && wday < 7;
+    }
+
+    inline bool CheckMonth(int mon)
+    {
+        return mon >= 0 && mon < 12;
+    }
+
+    inline int GetMaxMDay(int year, int month)
+    {
+        static constexpr int MAX_MDAY[12] = { 31,-1,31,30,31,30,31,31,30,31,30,31 };
+        int max_mday = MAX_MDAY[month];
         if (1 == month) {
-            month_day = (((0 == year % 4) && (0 != year % 100) || (0 == year % 400)) ? 29 : 28);
+            max_mday = (((0 == year % 4) && (0 != year % 100) || (0 == year % 400)) ? 29 : 28);
         }
-        return month_day;
+        return max_mday;
+    }
+
+    inline bool CheckMDay(int mday, int year, int month)
+    {
+        return mday > 0 && mday <= GetMaxMDay(year, month);
     }
 
     clock_t Clock()
@@ -90,73 +49,92 @@ namespace usrv
         return clock() / (CLOCKS_PER_SEC / 1000);
     }
 
-    int NextMinuteInterval(int second = 0)
+    time_t Now()
     {
-        CHECK_SECOND(second);
-
-        time_t now = time(NULL);
-        tm now_tm;
-        LocalTime(&now, &now_tm);
-        return MINUTE_SEC - now_tm.tm_sec + second;
+        return time(NULL);
     }
 
-    int NextHourInterval(int minute = 0, int second = 0)
+    int TimeZone(bool recal)
     {
-        CHECK_SECOND(second);
-        CHECK_MINUTE(minute);
-
-        time_t now = time(NULL);
-        tm now_tm;
-        LocalTime(&now, &now_tm);
-        return HOUR_SEC - (now_tm.tm_min * MINUTE_SEC) - now_tm.tm_sec + minute * MINUTE_SEC + second;
+        static int TIME_ZONE = -1;
+        if (TIME_ZONE == -1 || recal)
+        {
+            time_t now = Now();
+            tm local_tm;
+            tm gm_tm;
+            LocalTime(&now, &local_tm);
+            GMTime(&now, &gm_tm);
+            TIME_ZONE = local_tm.tm_hour - gm_tm.tm_hour;
+        }
+        return TIME_ZONE;
     }
 
-    int NextDayInterval(int hour = 0, int minute = 0, int second = 0)
+    int NextMinuteInterval(int second)
     {
-        CHECK_SECOND(second);
-        CHECK_MINUTE(minute);
-        CHECK_HOUR(hour);
+        if (!CheckSecond(second))
+        {
+            return -1;
+        }
 
-        time_t now = time(NULL);
-        tm now_tm;
-        LocalTime(&now, &now_tm);
-        return DAY_SEC - (now_tm.tm_hour * HOUR_SEC) - (now_tm.tm_min * MINUTE_SEC) - now_tm.tm_sec + hour * HOUR_SEC + minute * MINUTE_SEC + second;
+        time_t now = Now();
+        return MINUTE_SEC - now % MINUTE_SEC + second;
     }
 
-    int NextWeekInterval(int wday = 0, int hour = 0, int minute = 0, int second = 0)
+    int NextHourInterval(int minute, int second)
     {
-        CHECK_SECOND(second);
-        CHECK_MINUTE(minute);
-        CHECK_HOUR(hour);
-        CHECK_WDAY(wday);
+        if (!CheckMinute(minute) || !CheckSecond(second))
+        {
+            return -1;
+        }
 
-        time_t now = time(NULL);
-        tm now_tm;
-        LocalTime(&now, &now_tm);
-
-        int now_wday = now_tm.tm_wday == 0 ? 7 : now_tm.tm_wday;
-        return WEEK_SEC - ((now_wday - 1) * DAY_SEC) - (now_tm.tm_hour * HOUR_SEC) - (now_tm.tm_min * MINUTE_SEC) - now_tm.tm_sec + wday * DAY_SEC + hour * HOUR_SEC + minute * MINUTE_SEC + second;
+        time_t now = Now();
+        return HOUR_SEC - now % HOUR_SEC + minute * MINUTE_SEC + second;
     }
 
-    int NextMonthInterval(int mday = 0, int hour = 0, int minute = 0, int second = 0)
+    int NextDayInterval(int hour, int minute, int second)
     {
-        CHECK_SECOND(second);
-        CHECK_MINUTE(minute);
-        CHECK_HOUR(hour);
+        if (!CheckHour(hour) || !CheckMinute(minute) || !CheckSecond(second))
+        {
+            return -1;
+        }
 
-        time_t now = time(NULL);
+        time_t now = Now();
+        return DAY_SEC - TimeZone() * HOUR_SEC - now % DAY_SEC + hour * HOUR_SEC + minute * MINUTE_SEC + second;
+    }
+
+    int NextWeekInterval(int wday, int hour, int minute, int second)
+    {
+        if (!CheckWDay(wday) || !CheckHour(hour) || !CheckMinute(minute) || !CheckSecond(second))
+        {
+            return -1;
+        }
+
+        time_t now = Now();
+        return WEEK_SEC - TimeZone() * HOUR_SEC - (now - 4 * DAY_SEC) % WEEK_SEC + wday * DAY_SEC + hour * HOUR_SEC + minute * MINUTE_SEC + second;
+    }
+
+    int NextMonthInterval(int mday, int hour, int minute, int second)
+    {
+        if (!CheckHour(hour) || !CheckMinute(minute) || !CheckSecond(second))
+        {
+            return -1;
+        }
+
+        time_t now = Now();
         tm now_tm;
         LocalTime(&now, &now_tm);
 
         int now_year = 1900 + now_tm.tm_year;
         int now_month = now_tm.tm_mon;
-        int now_month_day = GetMonthDay(now_year, now_month);
+        int now_max_mday = GetMaxMDay(now_year, now_month);
         int next_year = now_month == 11 ? now_year + 1 : now_year;
-        int next_month = now_month == 11 ? 0 : now_month;
-        int next_month_day = GetMonthDay(next_year, next_month);
+        int next_month = ++now_month % 12;
 
-        CHECK_MDAY(mday, next_month_day);
+        if (!CheckMDay(mday, next_year, next_month))
+        {
+            return -1;
+        }
 
-        return now_month_day * DAY_SEC - ((now_tm.tm_mday - 1) * DAY_SEC) - (now_tm.tm_hour * HOUR_SEC) - (now_tm.tm_min * MINUTE_SEC) - now_tm.tm_sec + mday * DAY_SEC + hour * HOUR_SEC + minute * MINUTE_SEC + second;
+        return now_max_mday * DAY_SEC - ((now_tm.tm_mday - 1) * DAY_SEC) - (now_tm.tm_hour * HOUR_SEC) - (now_tm.tm_min * MINUTE_SEC) - now_tm.tm_sec + (mday - 1) * DAY_SEC + hour * HOUR_SEC + minute * MINUTE_SEC + second;
     }
 }

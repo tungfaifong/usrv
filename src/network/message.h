@@ -7,13 +7,23 @@
 
 namespace usrv
 {
+    template<typename T>
     class Message
     {
     public:
-        Message();
-        Message(const char * body, size_t body_size);
+        Message() : buffer_() {}
 
-        void ResetData();
+        Message(const char * body, size_t body_size) : buffer_()
+        {
+            SetBodySize(body_size);
+            EncodeHead();
+            buffer_.Set(body, BodySize(), MESSAGE_HEAD_SIZE);
+        }
+
+        void ResetData()
+        {
+            buffer_.ResetData();
+        }
 
         const char * Data() const { return buffer_.Data(); }
         char * Data() { return const_cast<char *>(static_cast<const Message &>(*this).Data()); }
@@ -22,13 +32,28 @@ namespace usrv
         const char * Body() const { return Data() + MESSAGE_HEAD_SIZE; }
         char * Body() { return const_cast<char *>(static_cast<const Message &>(*this).Body()); }
         size_t BodySize() { return Size() - MESSAGE_HEAD_SIZE; }
-        void SetBodySize(size_t size);
 
-        void EncodeHead();
-        void DecodeHead();
+        void SetBodySize(size_t size)
+        {
+            size = (size <= 0) ? 0 : (size > MESSAGE_BODY_SIZE ? MESSAGE_BODY_SIZE : size);
+            buffer_.Resize(MESSAGE_HEAD_SIZE + size);
+        }
+
+        void EncodeHead()
+        {
+            auto body_size = BodySize();
+            memcpy(Data(), &body_size, MESSAGE_HEAD_SIZE);
+        }
+
+        void DecodeHead()
+        {
+            auto body_size = 0;
+            memcpy(&body_size, Data(), MESSAGE_HEAD_SIZE);
+            SetBodySize(body_size);
+        }
 
     private:
-        FixedBuffer<MESSAGE_HEAD_SIZE + MESSAGE_BODY_SIZE> buffer_;
+        T buffer_;
     };
 }
 

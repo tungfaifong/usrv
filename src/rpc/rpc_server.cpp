@@ -108,7 +108,7 @@ namespace usrv
 
     uint32_t RpcServer::Impl::RegisterClient(std::shared_ptr<RpcClientStub> stub)
     {
-        return client_stubs_.Insert(std::move(stub));
+        return (uint32_t)client_stubs_.Insert(std::move(stub));
     }
 
     bool RpcServer::Impl::Call(const RpcStubID & client_id, const RpcStubID & server_id, const RpcFuncID & func_id, const char * param, size_t param_size)

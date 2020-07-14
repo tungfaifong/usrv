@@ -40,11 +40,24 @@ namespace usrv
             }
         }
 
+        void ResetData()
+        {
+            memset(data_, 0, size_ + 1);
+        }
+
     public:
         void Reset(const char * data, size_t size)
         {
             Resize(size);
+            ResetData();
             memcpy(data_, data, size_);
+        }
+
+        void Set(const char * data, size_t size, size_t offset = 0)
+        {
+            offset = offset > size_ ? size_ : offset;
+            size = offset + size > size_ ? size_ - offset : size;
+            memcpy(data_ + offset, data, size);
         }
 
         void Resize(size_t size)
@@ -56,7 +69,6 @@ namespace usrv
 
             size_ = size;
             data_ = new char[size_ + 1];
-            memset(data_, 0, size_ + 1);
         }
 
         size_t Size() const { return size_; }

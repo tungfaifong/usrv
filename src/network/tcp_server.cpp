@@ -6,10 +6,10 @@
 namespace usrv
 {
     //TcpServerImpl
-    TcpServer::Impl::Impl(asio::io_context & io_context, uint32_t init_peer, int32_t free_peer) : io_context_(io_context),
+    TcpServer::Impl::Impl(asio::io_context & io_context) : io_context_(io_context),
         acceptor_(nullptr),
         resolver_(nullptr),
-        peer_pool_(init_peer, free_peer),
+        peer_pool_(),
         connect_peers_(nullptr),
         msgs_(nullptr),
         disconnect_peers_(nullptr),
@@ -60,12 +60,12 @@ namespace usrv
 
     void TcpServer::Impl::InitPool()
     {
-        static const auto peer_release_func = [this](std::unique_ptr<TcpPeer> & peer)
+        static const auto destructor = [this](TcpPeer * peer)
         {
             peer->Release();
         };
 
-        peer_pool_.SetReleaseFunc(peer_release_func);
+        peer_pool_.SetDestructor(destructor);
     }
 
     void TcpServer::Impl::Listen(Port port)
@@ -86,11 +86,11 @@ namespace usrv
         {
             return false;
         }
-        (*peer)->Send(data, data_size);
+        peer->Send(data, data_size);
         return true;
     }
 
-    void TcpServer::Impl::Connect(std::string ip, Port port)
+    void TcpServer::Impl::Connect(IP ip, Port port)
     {
         if (resolver_ == nullptr)
         {
@@ -149,7 +149,7 @@ namespace usrv
         }
     }
 
-    void TcpServer::Impl::OnConnect(NetID net_id, std::string ip, Port port)
+    void TcpServer::Impl::OnConnect(NetID net_id, IP ip, Port port)
     {
         if (connect_peers_ != nullptr)
         {
@@ -196,10 +196,10 @@ namespace usrv
 
         {
             std::lock_guard<std::mutex> lock(mutex_peers_);
-            net_id = peers_.Insert(std::move(peer_pool_.Get()));
+            net_id = (NetID)peers_.Insert(std::move(peer_pool_.Get()));
             auto peer = peers_[net_id];
-            (*peer)->Init(net_id, shared_from_this(), std::make_unique<asio::ip::tcp::socket>(std::move(socket)));
-            (*peer)->Recv();
+            peer->Init(net_id, shared_from_this(), std::make_unique<asio::ip::tcp::socket>(std::move(socket)));
+            peer->Recv();
         }
 
         OnConnect(net_id, ip, port);
@@ -223,7 +223,7 @@ namespace usrv
 
     void TcpServer::Impl::TcpPeer::Send(const char * data, size_t data_size)
     {
-        Message msg(data, data_size);
+        Message<Buffer> msg(data, data_size);
         asio::async_write(*socket_,
             asio::buffer(msg.Data(), msg.Size()),
             [this](asio::error_code ec, std::size_t size)
@@ -287,8 +287,8 @@ namespace usrv
     }
 
     //TcpServer
-    TcpServer::TcpServer(asio::io_context & io_context, uint32_t init_peer, int32_t free_peer) : Unit(),
-        impl_(std::make_shared<Impl>(io_context, init_peer, free_peer))
+    TcpServer::TcpServer(asio::io_context & io_context) : Unit(),
+        impl_(std::make_shared<Impl>(io_context))
     {
 
     }
@@ -321,7 +321,7 @@ namespace usrv
         return impl_->Send(net_id, data, data_size);
     }
 
-    void TcpServer::Connect(std::string ip, Port port)
+    void TcpServer::Connect(IP ip, Port port)
     {
         impl_->Connect(ip, port);
     }

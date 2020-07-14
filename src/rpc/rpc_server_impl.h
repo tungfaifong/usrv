@@ -3,7 +3,7 @@
 #ifndef USRV_RPC_SERVER_IMPL_H
 #define USRV_RPC_SERVER_IMPL_H
 
-#include "common/object_list.hpp"
+#include "common/object_list.h"
 
 namespace usrv
 {

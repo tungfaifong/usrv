@@ -13,7 +13,7 @@ namespace usrv
     class TcpServer : public Unit
     {
     public:
-        TcpServer(asio::io_context & io_context, uint32_t init_peer = 0, int32_t free_peer = -1);
+        TcpServer(asio::io_context & io_context);
         virtual ~TcpServer();
 
         virtual bool Start() override final;
@@ -23,10 +23,10 @@ namespace usrv
     public:
         void Listen(Port port);
         bool Send(NetID net_id, const char * data, size_t data_size);
-        void Connect(std::string ip, Port port);
+        void Connect(IP ip, Port port);
         void Disconnect(NetID net_id);
 
-        using OnConnectFunc = std::function<void(NetID, std::string, Port)>;
+        using OnConnectFunc = std::function<void(NetID, IP, Port)>;
         void RegisterOnConnect(OnConnectFunc func);
 
         using OnRecvFunc = std::function<void(NetID, const char *, size_t)>;
