@@ -6,3 +6,4 @@ build
 *.vcxproj
 *.filters
 *.user
+demo/main.cpp
