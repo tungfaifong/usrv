@@ -2,11 +2,11 @@
 cmake_minimum_required(VERSION 3.10.2)
 
 set(usrv_header
-	./common/buffer.hpp
+	./common/buffer.h
 	./common/common_def.h
-	./common/object_pool.hpp
+	./common/object_pool.h
 	./common/path.h
-	./common/swap_list.hpp
+	./common/swap_list.h
 	./common/time.h
 	./network/message.h
 	./network/tcp_message.h
