@@ -70,7 +70,7 @@ public:
 
     void Send(const char * data, int data_size)
     {
-        usrv::Message msg(data, data_size);
+        usrv::Message<usrv::Buffer> msg(data, data_size);
         asio::async_write(socket_,
             asio::buffer(msg.Data(), msg.Size()),
             [this](asio::error_code ec, std::size_t size)
@@ -84,7 +84,7 @@ public:
 private:
     asio::io_context & io_context_;
     asio::ip::tcp::socket socket_;
-    usrv::Message msg_;
+    usrv::Message<usrv::FixedBuffer<usrv::MESSAGE_SIZE>> msg_;
 };
 
 bool run_tcp_client(std::string host, std::string port, int client_num)
