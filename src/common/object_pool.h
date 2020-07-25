@@ -22,7 +22,7 @@ namespace usrv
         {
             for (auto i = 0; i < init_num; ++i)
             {
-                objects_.push_back(new T());
+                objects_.emplace_back(new T());
             }
         }
 
