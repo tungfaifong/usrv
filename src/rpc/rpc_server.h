@@ -64,7 +64,7 @@ namespace usrv
     class RpcServer : public Unit
     {
     public:
-        RpcServer(asio::io_context & io_context);
+        RpcServer(asio::io_context & io_context, clock_t io_interval);
         virtual ~RpcServer();
 
         virtual bool Start() override final;

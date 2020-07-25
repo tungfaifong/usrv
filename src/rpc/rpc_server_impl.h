@@ -12,7 +12,7 @@ namespace usrv
     class RpcServer::Impl
     {
     public:
-        Impl(asio::io_context & io_context);
+        Impl(asio::io_context & io_context, clock_t io_interval);
         virtual ~Impl();
 
         bool Start();
@@ -32,7 +32,7 @@ namespace usrv
         bool Call(const RpcStubID & client_id, const RpcStubID & server_id, const RpcFuncID & func_id, const char * param, size_t param_size);
 
     private:
-        bool Send(NetID net_id, const char * data, size_t data_size);
+        void Send(NetID net_id, const char * data, size_t data_size);
 
         void OnCall(const NetID & net_id, const RpcStubID & client_id, const RpcStubID & server_id, const RpcFuncID & func_id, const RpcParam & param);
         void OnResponse(const RpcStubID & client_id, const RpcStubID & server_id, const RpcFuncID & func_id, const RpcResult & result, const RpcParam & param);

@@ -118,6 +118,11 @@ namespace usrv
         return impl_->IOContext();
     }
 
+    clock_t UnitManager::Interval()
+    {
+        return impl_->Interval();
+    }
+
     bool UnitManager::Register(const std::string & name, std::shared_ptr<Unit> unit)
     {
         return impl_->Register(name, unit);

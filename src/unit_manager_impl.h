@@ -15,6 +15,7 @@ namespace usrv
 
     public:
         asio::io_context & IOContext() { return io_context_; }
+        clock_t Interval() { return interval_; }
 
     public:
         bool Register(const std::string & name, std::shared_ptr<Unit> unit);

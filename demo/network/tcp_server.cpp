@@ -9,7 +9,7 @@ bool run_tcp_server(int port)
 {
     usrv::UnitManager mgr(10);
 
-    auto tcp_server = std::make_shared<usrv::TcpServer>(mgr.IOContext(), 10, 10);
+    auto tcp_server = std::make_shared<usrv::TcpServer>(mgr.IOContext(), mgr.Interval());
 
     tcp_server->RegisterOnRecv([&](usrv::NetID net_id, const char * data, size_t data_size) {
         std::cout << "net_id:" << net_id << " data:" << data << std::endl;

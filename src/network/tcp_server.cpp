@@ -6,56 +6,90 @@
 namespace usrv
 {
     //TcpServerImpl
-    TcpServer::Impl::Impl(asio::io_context & io_context) : io_context_(io_context),
+    TcpServer::Impl::Impl(asio::io_context & io_context, clock_t io_interval) : io_context_(io_context),
         acceptor_(nullptr),
         resolver_(nullptr),
+        io_interval_(io_interval),
+        io_timer_(io_context),
         peer_pool_(),
-        connect_peers_(nullptr),
-        msgs_(nullptr),
-        disconnect_peers_(nullptr),
+        connected_peers_(),
+        recv_msgs_(),
+        disconnected_peers_(),
         on_connect_(nullptr),
         on_recv_(nullptr),
-        on_disconnect_(nullptr)
+        on_disconnect_(nullptr),
+        send_msgs_(),
+        to_disconnect_peers_()
     {
         InitPool();
     }
 
     TcpServer::Impl::~Impl()
     {
+    }
 
+    bool TcpServer::Impl::Start()
+    {
+        IOUpdate();
+        return true;
     }
 
     void TcpServer::Impl::Update(clock_t interval)
     {
-        if (connect_peers_ != nullptr && on_connect_ != nullptr)
+        if (on_connect_ != nullptr)
         {
-            static const auto connect_peers_each_func = [this](const ConnectPeer & peer)
+            static const auto connect_peers_each_func = [this](const ConnectedPeer & peer)
             {
                 on_connect_(peer.net_id_, peer.ip_, peer.port_);
             };
-
-            connect_peers_->ForEach(connect_peers_each_func);
+            connected_peers_.ForEach(connect_peers_each_func);
         }
 
-        if (msgs_ != nullptr && on_recv_ != nullptr)
+        if (on_recv_ != nullptr)
         {
-            static const auto msgs_each_func = [this](const TcpMessage & msg)
+            static const auto recv_msgs_each_func = [this](const TcpMessage & msg)
             {
                 on_recv_(msg.GetNetID(), msg.Data(), msg.Size());
             };
-
-            msgs_->ForEach(msgs_each_func);
+            recv_msgs_.ForEach(recv_msgs_each_func);
         }
 
-        if (disconnect_peers_ != nullptr && on_disconnect_ != nullptr)
+        if (on_disconnect_ != nullptr)
         {
             static const auto disconnect_peers_each_func = [this](const NetID & peer)
             {
                 on_disconnect_(peer);
             };
-
-            disconnect_peers_->ForEach(disconnect_peers_each_func);
+            disconnected_peers_.ForEach(disconnect_peers_each_func);
         }
+    }
+
+    void TcpServer::Impl::Stop()
+    {
+        io_timer_.cancel();
+    }
+
+    void TcpServer::Impl::IOUpdate()
+    {
+        static const auto send_msgs_each_func = [this](const TcpMessage & msg)
+        {
+            auto peer = peers_[msg.GetNetID()];
+            if (peer)
+            {
+                peer->Send(msg.Data(), msg.Size());
+            }
+        };
+        send_msgs_.ForEach(send_msgs_each_func);
+
+        static const auto to_disconnect_peers_each_func = [this](const NetID & peer)
+        {
+            OnDisconnect(peer);
+            peers_.Erase(peer);
+        };
+        to_disconnect_peers_.ForEach(to_disconnect_peers_each_func);
+
+        io_timer_.expires_after(std::chrono::milliseconds(io_interval_));
+        io_timer_.async_wait(std::bind(&TcpServer::Impl::IOUpdate, this));
     }
 
     void TcpServer::Impl::InitPool()
@@ -78,16 +112,9 @@ namespace usrv
         Accept();
     }
 
-    bool TcpServer::Impl::Send(NetID net_id, const char * data, size_t data_size)
+    void TcpServer::Impl::Send(NetID net_id, const char * data, size_t data_size)
     {
-        std::lock_guard<std::mutex> lock(mutex_peers_);
-        auto peer = peers_[net_id];
-        if (peer == nullptr)
-        {
-            return false;
-        }
-        peer->Send(data, data_size);
-        return true;
+        send_msgs_.EmplaceBack(TcpMessage(net_id, data, data_size));
     }
 
     void TcpServer::Impl::Connect(IP ip, Port port)
@@ -111,66 +138,37 @@ namespace usrv
 
     void TcpServer::Impl::Disconnect(NetID net_id)
     {
-        {
-            std::lock_guard<std::mutex> lock(mutex_peers_);
-            peers_.Erase(net_id);
-        }
-
-        OnDisconnect(net_id);
+        to_disconnect_peers_.EmplaceBack(std::move(net_id));
     }
 
     void TcpServer::Impl::RegisterOnConnect(OnConnectFunc func)
     {
         on_connect_ = func;
-
-        if (connect_peers_ == nullptr)
-        {
-            connect_peers_ = std::make_unique<SwapList<ConnectPeer>>();
-        }
     }
 
     void TcpServer::Impl::RegisterOnRecv(OnRecvFunc func)
     {
         on_recv_ = func;
-
-        if (msgs_ == nullptr)
-        {
-            msgs_ = std::make_unique<SwapList<TcpMessage>>();
-        }
     }
 
     void TcpServer::Impl::RegisterOnDisconnect(OnDisconnectFunc func)
     {
         on_disconnect_ = func;
-
-        if (disconnect_peers_ == nullptr)
-        {
-            disconnect_peers_ = std::make_unique<SwapList<NetID>>();
-        }
     }
 
     void TcpServer::Impl::OnConnect(NetID net_id, IP ip, Port port)
     {
-        if (connect_peers_ != nullptr)
-        {
-            connect_peers_->EmplaceBack(ConnectPeer(net_id, ip, port));
-        }
+        connected_peers_.EmplaceBack(ConnectedPeer(net_id, ip, port));
     }
 
     void TcpServer::Impl::OnRecv(NetID net_id, const char * data, size_t data_size)
     {
-        if (msgs_ != nullptr)
-        {
-            msgs_->EmplaceBack(TcpMessage(net_id, data, data_size));
-        }
+        recv_msgs_.EmplaceBack(TcpMessage(net_id, data, data_size));
     }
 
     void TcpServer::Impl::OnDisconnect(NetID net_id)
     {
-        if (disconnect_peers_ != nullptr)
-        {
-            disconnect_peers_->EmplaceBack(std::move(net_id));
-        }
+        disconnected_peers_.EmplaceBack(std::move(net_id));
     }
 
     void TcpServer::Impl::Accept()
@@ -189,18 +187,14 @@ namespace usrv
 
     void TcpServer::Impl::AddPeer(asio::ip::tcp::socket socket)
     {
-        auto net_id = INVALID_NET_ID;
         auto remote_endpoint = socket.remote_endpoint();
         auto ip = remote_endpoint.address().to_string();
         auto port = remote_endpoint.port();
 
-        {
-            std::lock_guard<std::mutex> lock(mutex_peers_);
-            net_id = (NetID)peers_.Insert(std::move(peer_pool_.Get()));
-            auto peer = peers_[net_id];
-            peer->Init(net_id, shared_from_this(), std::make_unique<asio::ip::tcp::socket>(std::move(socket)));
-            peer->Recv();
-        }
+        auto net_id = (NetID)peers_.Insert(std::move(peer_pool_.Get()));
+        auto peer = peers_[net_id];
+        peer->Init(net_id, shared_from_this(), std::move(socket));
+        peer->Recv();
 
         OnConnect(net_id, ip, port);
     }
@@ -235,11 +229,11 @@ namespace usrv
             });
     }
 
-    void TcpServer::Impl::TcpPeer::Init(const NetID & net_id, std::shared_ptr<TcpServer::Impl> server, std::unique_ptr<asio::ip::tcp::socket> socket)
+    void TcpServer::Impl::TcpPeer::Init(const NetID & net_id, std::shared_ptr<TcpServer::Impl> server, asio::ip::tcp::socket socket)
     {
         net_id_ = net_id;
         server_ = std::move(server);
-        socket_ = std::move(socket);
+        socket_ = std::make_unique<asio::ip::tcp::socket>(std::move(socket));
     }
 
     void TcpServer::Impl::TcpPeer::Release()
@@ -287,8 +281,8 @@ namespace usrv
     }
 
     //TcpServer
-    TcpServer::TcpServer(asio::io_context & io_context) : Unit(),
-        impl_(std::make_shared<Impl>(io_context))
+    TcpServer::TcpServer(asio::io_context & io_context, clock_t io_interval) : Unit(),
+        impl_(std::make_shared<Impl>(io_context, io_interval))
     {
 
     }
@@ -299,7 +293,7 @@ namespace usrv
 
     bool TcpServer::Start()
     {
-        return true;
+        return impl_->Start();
     }
 
     void TcpServer::Update(clock_t interval)
@@ -309,6 +303,7 @@ namespace usrv
 
     void TcpServer::Stop()
     {
+        impl_->Stop();
     }
 
     void TcpServer::Listen(Port port)
@@ -316,9 +311,9 @@ namespace usrv
         impl_->Listen(port);
     }
 
-    bool TcpServer::Send(NetID net_id, const char * data, size_t data_size)
+    void TcpServer::Send(NetID net_id, const char * data, size_t data_size)
     {
-        return impl_->Send(net_id, data, data_size);
+        impl_->Send(net_id, data, data_size);
     }
 
     void TcpServer::Connect(IP ip, Port port)

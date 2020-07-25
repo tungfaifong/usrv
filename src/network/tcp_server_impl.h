@@ -16,17 +16,20 @@ namespace usrv
     class TcpServer::Impl : public std::enable_shared_from_this<TcpServer::Impl>
     {
     public:
-        Impl(asio::io_context & io_context);
+        Impl(asio::io_context & io_context, clock_t io_interval);
         ~Impl();
 
+        bool Start();
         void Update(clock_t interval);
+        void Stop();
+        void IOUpdate();
 
     private:
         void InitPool();
 
     public:
         void Listen(Port port);
-        bool Send(NetID net_id, const char * data, size_t data_size);
+        void Send(NetID net_id, const char * data, size_t data_size);
         void Connect(IP ip, Port port);
         void Disconnect(NetID net_id);
 
@@ -48,25 +51,32 @@ namespace usrv
         std::unique_ptr<asio::ip::tcp::acceptor> acceptor_;
         std::unique_ptr<asio::ip::tcp::resolver> resolver_;
 
+        clock_t io_interval_;
+        asio::steady_timer io_timer_;
+
         class TcpPeer;
         ObjectPool<TcpPeer> peer_pool_;
         ObjectList<TcpPeer> peers_;
-        std::mutex mutex_peers_;
 
-        struct ConnectPeer
+        //IO2MAIN
+        struct ConnectedPeer
         {
-            ConnectPeer(NetID net_id, IP ip, Port port) : net_id_(net_id), ip_(std::move(ip)), port_(port) {}
+            ConnectedPeer(NetID net_id, IP ip, Port port) : net_id_(net_id), ip_(std::move(ip)), port_(port) {}
             NetID net_id_;
             IP ip_;
             Port port_;
         };
-        std::unique_ptr<SwapList<ConnectPeer>> connect_peers_;
-        std::unique_ptr<SwapList<TcpMessage>> msgs_;
-        std::unique_ptr<SwapList<NetID>> disconnect_peers_;
+        SwapList<ConnectedPeer> connected_peers_;
+        SwapList<TcpMessage> recv_msgs_;
+        SwapList<NetID> disconnected_peers_;
 
         OnConnectFunc on_connect_;
         OnRecvFunc on_recv_;
         OnDisconnectFunc on_disconnect_;
+
+        //MAIN2IO
+        SwapList<TcpMessage> send_msgs_;
+        SwapList<NetID> to_disconnect_peers_;
     };
 
     class TcpServer::Impl::TcpPeer
@@ -80,7 +90,7 @@ namespace usrv
         void Send(const char * data, size_t data_size);
 
     public:
-        void Init(const NetID & net_id, std::shared_ptr<TcpServer::Impl> server, std::unique_ptr<asio::ip::tcp::socket> socket);
+        void Init(const NetID & net_id, std::shared_ptr<TcpServer::Impl> server, asio::ip::tcp::socket socket);
         void Release();
 
     private:

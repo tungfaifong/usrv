@@ -73,7 +73,7 @@ bool run_rpc_client(std::string host, int port)
 {
     usrv::UnitManager mgr(10);
 
-    auto rpc_server = std::make_shared<usrv::RpcServer>(mgr.IOContext());
+    auto rpc_server = std::make_shared<usrv::RpcServer>(mgr.IOContext(), mgr.Interval());
     mgr.Register("server", std::move(rpc_server));
 
     auto game = std::make_shared<Game>(&mgr);

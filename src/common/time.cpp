@@ -4,6 +4,32 @@
 
 namespace usrv
 {
+#ifdef __unix__ // __unix__
+
+    struct tm * LocalTime(const time_t * timer, struct tm * buf)
+    {
+        return localtime_r(timer, buf);
+    }
+
+    struct tm * GMTime(const time_t * timer, struct tm * buf)
+    {
+        return gmtime_r(timer, buf);
+    }
+
+#elif _WIN32 // _WIN32
+
+    errno_t __CRTDECL LocalTime(const time_t * timer, struct tm * buf)
+    {
+        return localtime_s(buf, timer);
+    }
+
+    errno_t __CRTDECL GMTime(const time_t * timer, struct tm * buf)
+    {
+        return gmtime_s(buf, timer);
+    }
+
+#endif 
+
     inline bool CheckSecond(int sec)
     {
         return sec >= 0 && sec < 60;

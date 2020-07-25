@@ -5,34 +5,20 @@
 
 #include <time.h>
 
-#ifdef __unix__
-
-struct tm * LocalTime(const time_t * timer, struct tm * buf)
-{
-    return localtime_r(timer, buf);
-}
-
-struct tm * GMTime(const time_t * timer, struct tm * buf)
-{
-    return gmtime_r(timer, buf);
-}
-
-#elif _WIN32 // __unix__
-
-errno_t __CRTDECL LocalTime(const time_t * timer, struct tm * buf)
-{
-    return localtime_s(buf, timer);
-}
-
-errno_t __CRTDECL GMTime(const time_t * timer, struct tm * buf)
-{
-    return gmtime_s(buf, timer);
-}
-
-#endif // _WIN32
-
 namespace usrv
 {
+#ifdef __unix__ // __unix__
+
+    struct tm * LocalTime(const time_t * timer, struct tm * buf);
+    struct tm * GMTime(const time_t * timer, struct tm * buf);
+
+#elif _WIN32 // _WIN32
+
+    errno_t __CRTDECL LocalTime(const time_t * timer, struct tm * buf);
+    errno_t __CRTDECL GMTime(const time_t * timer, struct tm * buf);
+
+#endif 
+
     static constexpr int MINUTE_SEC = 60;
     static constexpr int HOUR_SEC = 60 * MINUTE_SEC;
     static constexpr int DAY_SEC = 24 * HOUR_SEC;

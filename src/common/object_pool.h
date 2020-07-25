@@ -4,7 +4,6 @@
 #define USRV_OBJECT_POOL_HPP
 
 #include <list>
-#include <mutex>
 #include <memory>
 #include <functional>
 
@@ -21,7 +20,10 @@ namespace usrv
         ObjectPool(size_t init_num = INIT_SIZE, size_t max_num = MAX_SIZE) : max_num_(max_num),
             destructor_(nullptr)
         {
-            objects_.resize(init_num, new T());
+            for (auto i = 0; i < init_num; ++i)
+            {
+                objects_.push_back(new T());
+            }
         }
 
     public:
@@ -29,13 +31,10 @@ namespace usrv
         {
             T * obj = nullptr;
 
+            if (!objects_.empty())
             {
-                std::lock_guard<std::mutex> lock(mutex_objects_);
-                if (!objects_.empty())
-                {
-                    obj = objects_.front();
-                    objects_.pop_front();
-                }
+                obj = objects_.front();
+                objects_.pop_front();
             }
 
             if (!obj)
@@ -59,8 +58,6 @@ namespace usrv
                 destructor_(obj);
             }
 
-            std::lock_guard<std::mutex> lock(mutex_objects_);
-
             if (objects_.size() >= max_num_)
             {
                 delete obj;
@@ -72,8 +69,6 @@ namespace usrv
 
     private:
         std::list<T *> objects_;
-        std::mutex mutex_objects_;
-
         size_t max_num_;
 
         std::function<void(T * obj)> destructor_;

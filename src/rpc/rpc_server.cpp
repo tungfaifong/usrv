@@ -9,7 +9,7 @@
 namespace usrv
 {
     //RpcServerImpl
-    RpcServer::Impl::Impl(asio::io_context & io_context) : tcp_server_(std::make_shared<TcpServer>(io_context)),
+    RpcServer::Impl::Impl(asio::io_context & io_context, clock_t io_interval) : tcp_server_(std::make_shared<TcpServer>(io_context, io_interval)),
         server_net_id_(INVALID_NET_ID),
         server_ip_(),
         server_port_(0)
@@ -125,12 +125,13 @@ namespace usrv
 
         RpcMessage msg(RpcType::SERVER, client_id, server_id, func_id);
         msg.Param().Reset(param, param_size);
-        return Send(server_net_id_, (const char *)&msg, msg.Size());
+        Send(server_net_id_, (const char *)&msg, msg.Size());
+        return true;
     }
 
-    bool RpcServer::Impl::Send(NetID net_id, const char * data, size_t data_size)
+    void RpcServer::Impl::Send(NetID net_id, const char * data, size_t data_size)
     {
-        return tcp_server_->Send(net_id, data, data_size);
+        tcp_server_->Send(net_id, data, data_size);
     }
 
     void RpcServer::Impl::OnCall(const NetID & net_id, const RpcStubID & client_id, const RpcStubID & server_id, const RpcFuncID & func_id, const RpcParam & param)
@@ -222,8 +223,8 @@ namespace usrv
     }
 
     //RpcServer
-    RpcServer::RpcServer(asio::io_context & io_context) : Unit(),
-        impl_(std::make_unique<Impl>(io_context))
+    RpcServer::RpcServer(asio::io_context & io_context, clock_t io_interval) : Unit(),
+        impl_(std::make_unique<Impl>(io_context, io_interval))
     {
     }
 
