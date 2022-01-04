@@ -1,30 +1,41 @@
-// Copyright (c) 2019-2020 TungFai Fong 
+// Copyright (c) 2022 TungFai Fong <iam@tungfaifong.com>
 
 #include <iostream>
 
 #include "unit_manager.h"
-#include "timer/timer_manager.h"
+#include "units/timer_unit.h"
+#include "util/time.h"
 
-bool run_timer()
+void call1()
 {
-    usrv::UnitManager mgr(10);
-    mgr.Register("timer_manager", std::move(std::make_shared<usrv::TimerManager>()));
+    printf("call timeout 1\n");
+}
 
-    static auto timer_manager = std::dynamic_pointer_cast<usrv::TimerManager>(mgr.Get("timer_manager"));
+class CallObj
+{
+public:
+    static void call3() { printf("call timeout 3\n"); }
+    void call4() { printf("call timeout 4\n"); }
+};
 
-    class TestTimer : public usrv::Timer
-    {
-    public:
-        virtual void OnCallback() override
-        {
-            std::cout << "call OnCallback" << std::endl;
-            timer_manager->CreateTimer(5 * 1000, std::make_shared<TestTimer>());
-        }
-    };
+int run_timer()
+{
+    usrv::UnitManager::Instance()->Register("timer_manager", std::move(std::make_shared<usrv::TimerUnit>()));
 
-    timer_manager->CreateTimer(5 * 1000, std::make_shared<TestTimer>());
+    static auto timer_manager = std::dynamic_pointer_cast<usrv::TimerUnit>(usrv::UnitManager::Instance()->Get("timer_manager"));
 
-    mgr.Run();
+    printf("main start\n");
 
-    return true;
+    CallObj a;
+    timer_manager->CreateTimer(3 * usrv::SEC2MILLISEC, call1);
+    timer_manager->CreateTimer(4 * usrv::SEC2MILLISEC, [](){ printf("call timeout 2\n"); });
+    timer_manager->CreateTimer(5 * usrv::SEC2MILLISEC, CallObj::call3);
+    timer_manager->CreateTimer(6 * usrv::SEC2MILLISEC, std::bind(&CallObj::call4, &a));
+
+    printf("main run\n");
+    usrv::UnitManager::Instance()->Run(10);
+
+    printf("main exit\n");
+
+    return 0;
 }

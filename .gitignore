@@ -1,9 +1,3 @@
-.vs
-Debug
+.vscode
 3rdparty
-build
-*.sln
-*.vcxproj
-*.filters
-*.user
-demo/main.cpp
+out

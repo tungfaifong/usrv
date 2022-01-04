@@ -1,140 +1,103 @@
-// Copyright (c) 2019-2020 TungFai Fong 
+// Copyright (c) 2022 TungFai Fong <iam@tungfaifong.com>
 
 #include "unit_manager.h"
-#include "unit_manager_impl.h"
 
-#include "spdlog/spdlog.h"
-
-#include "common/time.h"
 #include "unit.h"
+#include "util/time.h"
 
 namespace usrv
 {
-    //UnitManagerImpl
-    UnitManager::Impl::Impl(clock_t interval) :interval_(interval),
-        io_context_()
-    {
-    }
 
-    UnitManager::Impl::~Impl()
-    {
-        Stop();
-    }
+UnitManager * UnitManager::Instance()
+{
+	static UnitManager instance;
+	return &instance;
+}
 
-    bool UnitManager::Impl::Register(const std::string & name, std::shared_ptr<Unit> unit)
-    {
-        if (units_.find(name) != units_.end())
-        {
-            return false;
-        }
+bool UnitManager::Register(const std::string & name, std::shared_ptr<Unit> && unit)
+{
+	if (_units.find(name) != _units.end())
+	{
+		return false;
+	}
 
-        units_.insert(std::make_pair(name, std::move(unit)));
+	_units.insert(std::make_pair(name, std::move(unit)));
 
-        return true;
-    }
+	return true;
+}
 
-    std::shared_ptr<Unit> UnitManager::Impl::Get(std::string name)
-    {
-        auto iter = units_.find(name);
-        if (iter == units_.end())
-        {
-            return nullptr;
-        }
-        return iter->second;
-    }
+std::shared_ptr<Unit> UnitManager::Get(const std::string & name)
+{
+	auto iter = _units.find(name);
+	if (iter == _units.end())
+	{
+		return nullptr;
+	}
+	return iter->second;
+}
 
-    void UnitManager::Impl::Run()
-    {
-        if (!Start())
-        {
-            spdlog::error("UnitManager start failed.");
-            return;
-        }
+void UnitManager::Run(intvl_t interval)
+{
+	_interval = interval;
 
-        std::thread thread_io([this]() { io_context_.run(); });
+	if (!_Start())
+	{
+		return;
+	}
 
-        MainLoop();
+	_MainLoop();
 
-        thread_io.join();
-    }
+	_Stop();
+}
 
-    bool UnitManager::Impl::Start()
-    {
-        spdlog::info("UnitManager starting.");
-        for (auto & unit : units_)
-        {
-            if (!unit.second->Start())
-            {
-                spdlog::error("{} start failed.", unit.first);
-                return false;
-            }
-        }
-        spdlog::info("UnitManager started.");
-        return true;
-    }
+void UnitManager::SetExit(bool exit)
+{
+	_exit = exit;
+}
 
-    void UnitManager::Impl::Update(clock_t interval)
-    {
-        for (auto & unit : units_)
-        {
-            unit.second->Update(interval);
-        }
-    }
+bool UnitManager::_Start()
+{
+	for (auto & unit : _units)
+	{
+		if (!unit.second->Start())
+		{
+			return false;
+		}
+	}
+	return true;
+}
 
-    void UnitManager::Impl::Stop()
-    {
-        for (auto & unit : units_)
-        {
-            unit.second->Stop();
-        }
-    }
+void UnitManager::_Update(intvl_t interval)
+{
+	for (auto & unit : _units)
+	{
+		unit.second->Update(interval);
+	}
+}
 
-    void UnitManager::Impl::MainLoop()
-    {
-        auto start = Clock();
-        while (true)
-        {
-            auto now = Clock();
-            auto interval = now - start;
-            if (interval >= interval_)
-            {
-                Update(interval);
-                start = now;
-            }
-        }
-    }
+void UnitManager::_Stop()
+{
+	for (auto & unit : _units)
+	{
+		unit.second->Stop();
+	}
+}
 
-    //UnitManager
-    UnitManager::UnitManager(clock_t interval) : impl_(std::make_unique<Impl>(interval))
-    {
-    }
+void UnitManager::_MainLoop()
+{
+	auto start = clock();
+	auto now = start;
+	auto interval = ClockMS(now - start);
+	while (!_exit)
+	{
+		now = clock();
+		interval = ClockMS(now - start);
+		if (interval >= _interval)
+		{
+			_Update(interval);
+			start = now;
+		}
+	}
+}
 
-    UnitManager::~UnitManager()
-    {
-    }
-
-    asio::io_context & UnitManager::IOContext()
-    {
-        return impl_->IOContext();
-    }
-
-    clock_t UnitManager::Interval()
-    {
-        return impl_->Interval();
-    }
-
-    bool UnitManager::Register(const std::string & name, std::shared_ptr<Unit> unit)
-    {
-        return impl_->Register(name, unit);
-    }
-
-    std::shared_ptr<Unit> UnitManager::Get(const std::string & name)
-    {
-        return impl_->Get(name);
-    }
-
-    void UnitManager::Run()
-    {
-        impl_->Run();
-    }
 }
