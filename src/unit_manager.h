@@ -20,7 +20,7 @@ public:
 
 public:
 	bool Register(const std::string & name, std::shared_ptr<Unit> && unit);
-	std::shared_ptr<Unit> Get(const std::string &name);
+	std::shared_ptr<Unit> Get(const std::string & name);
 	void Run(intvl_t interval);
 	void SetExit(bool exit);
 	intvl_t Interval();

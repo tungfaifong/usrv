@@ -43,7 +43,7 @@ public:
 	void CreateTimer(intvl_t time, std::function<void()> && callback);
 
 private:
-	std::priority_queue<Timer, std::vector<Timer>, std::greater<Timer> > _timers;
+	std::priority_queue<Timer, std::vector<Timer>, std::greater<Timer>> _timers;
 };
 
 NAMESPACE_CLOSE
