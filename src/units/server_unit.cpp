@@ -7,11 +7,7 @@
 NAMESPACE_OPEN
 
 // ServerUnit
-ServerUnit::ServerUnit(): _timer(_io_context)
-{
-}
-
-ServerUnit::~ServerUnit()
+ServerUnit::ServerUnit(size_t spsc_blk_num): _timer(_io_context), _send_queue(spsc_blk_num), _recv_queue(spsc_blk_num)
 {
 }
 
@@ -62,7 +58,7 @@ void ServerUnit::Disconnect(NETID net_id)
 
 bool ServerUnit::Send(NETID net_id, const char * data, uint16_t size)
 {
-	MsgQueue::Header header;
+	SpscQueue::Header header;
 	header.size = size;
 	header.data16 = net_id;
 	header.data32 = 0;
@@ -77,7 +73,7 @@ bool ServerUnit::Send(NETID net_id, const char * data, uint16_t size)
 
 bool ServerUnit::Recv(NETID * net_id, char * data, uint16_t * size)
 {
-	MsgQueue::Header header;
+	SpscQueue::Header header;
 
 	if(!_recv_queue.TryPop(data, &header))
 	{
@@ -103,7 +99,7 @@ asio::awaitable<void> ServerUnit::_IoUpdate()
 	{
 		while(!_send_queue.Empty())
 		{
-			MsgQueue::Header header;
+			SpscQueue::Header header;
 
 			if(!_send_queue.TryPop(_send_buff, &header))
 			{
@@ -202,7 +198,7 @@ asio::awaitable<void> Peer::_Recv()
 			co_await asio::async_read(_socket, asio::buffer(&body_size, MESSAGE_HEAD_SIZE), asio::use_awaitable);
 			co_await asio::async_read(_socket, asio::buffer(_recv_buff, body_size), asio::use_awaitable);
 
-			ServerUnit::MsgQueue::Header header;
+			SpscQueue::Header header;
 			header.size = body_size;
 			header.data16 = _net_id;
 			header.data32 = 0;

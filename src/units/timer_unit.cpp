@@ -5,14 +5,6 @@
 #include "util/time.h"
 
 NAMESPACE_OPEN
-	
-TimerUnit::TimerUnit()
-{
-}
-
-TimerUnit::~TimerUnit()
-{
-}
 
 bool TimerUnit::Start()
 {

@@ -19,10 +19,8 @@ class Peer;
 class ServerUnit : public Unit, public std::enable_shared_from_this<ServerUnit>
 {
 public:
-	using MsgQueue = SpscQueue<SPSC_QUEUE_BLOCK_NUM>;
-
-	ServerUnit();
-	virtual ~ServerUnit();
+	ServerUnit(size_t spsc_blk_num);
+	virtual ~ServerUnit() = default;
 
 	virtual bool Start() override final;
 	virtual void Update(intvl_t interval) override final;
@@ -54,8 +52,8 @@ private:
 	std::map<NETID, std::shared_ptr<Peer>> _peers;
 
 	friend class Peer;
-	MsgQueue _send_queue;
-	MsgQueue _recv_queue;
+	SpscQueue _send_queue;
+	SpscQueue _recv_queue;
 	char _send_buff[MESSAGE_BODY_SIZE];
 };
 

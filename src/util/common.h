@@ -20,8 +20,6 @@ using NETID = uint32_t;
 using IP = std::string;
 using PORT = uint16_t;
 
-static constexpr uint32_t SPSC_QUEUE_BLOCK_NUM = 1024 * 1024;
-
 static constexpr NETID INVALID_NET_ID = -1;
 
 static constexpr uint16_t MESSAGE_HEAD_SIZE = sizeof(uint16_t);

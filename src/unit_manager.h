@@ -15,6 +15,10 @@ class Unit;
 class UnitManager : public Singleton<UnitManager>, public std::enable_shared_from_this<UnitManager>
 {
 public:
+	UnitManager() = default;
+	~UnitManager() = default;
+
+public:
 	bool Register(const std::string & name, std::shared_ptr<Unit> && unit);
 	std::shared_ptr<Unit> Get(const std::string &name);
 	void Run(intvl_t interval);

@@ -32,8 +32,8 @@ private:
 class TimerUnit : public Unit
 {
 public:
-	TimerUnit();
-	virtual ~TimerUnit();
+	TimerUnit() = default;
+	virtual ~TimerUnit() = default;
 
 	virtual bool Start() override final;
 	virtual void Update(intvl_t interval) override final;

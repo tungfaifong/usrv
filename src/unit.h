@@ -12,8 +12,8 @@ class UnitManager;
 class Unit
 {
 public:
-	Unit() {}
-	virtual ~Unit() {}
+	Unit() = default;
+	virtual ~Unit() = default;
 
 	virtual bool Start() = 0;
 	virtual void Update(intvl_t interval) = 0;

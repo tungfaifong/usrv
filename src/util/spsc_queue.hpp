@@ -5,14 +5,15 @@
 #define SPSC_QUEUE_HPP
 
 #include <atomic>
+#include <cassert>
 #include <cstring>
 #include <new>
+#include <stdlib.h>
 
 NAMESPACE_OPEN
 
 #define MIN(x, y) x < y ? x : y
 
-template <size_t BLOCK_NUM>
 class SpscQueue
 {
 public:
@@ -24,9 +25,6 @@ public:
 	static constexpr size_t BLOCK_SIZE = CACHELINE_SIZE;
 #endif
 
-	static constexpr size_t BYTES = BLOCK_NUM * BLOCK_SIZE;
-	static_assert(BLOCK_NUM && !(BLOCK_NUM & (BLOCK_NUM - 1)), "BLOCK_NUM must be a power of 2");
-
 	struct Header
 	{
 		uint16_t size;
@@ -35,6 +33,17 @@ public:
 	};
 	static constexpr size_t HEADER_SIZE = sizeof(Header);
 
+	SpscQueue(size_t block_num):_block_num(block_num), _bytes(_block_num * BLOCK_SIZE)
+	{
+		assert(_block_num && !(_block_num & (_block_num - 1)));
+		_buff = (char *)_aligned_malloc(_bytes, CACHELINE_SIZE);
+	}
+
+	~SpscQueue()
+	{
+		_aligned_free(_buff);
+	}
+
 	// block push
 	void Push(const char * data, Header header)
 	{
@@ -42,12 +51,12 @@ public:
 		const auto need_block = (header.size + HEADER_SIZE - 1) / BLOCK_SIZE + 1;
 		while (_empty_block < need_block)
 		{
-			_empty_block = BLOCK_NUM - write_idx + _read_idx.load(std::memory_order_acquire);
+			_empty_block = _block_num - write_idx + _read_idx.load(std::memory_order_acquire);
 		}
 
-		const auto offset = (write_idx & (BLOCK_NUM - 1)) * BLOCK_SIZE;
+		const auto offset = (write_idx & (_block_num - 1)) * BLOCK_SIZE;
 		memcpy(_buff + offset, &header, HEADER_SIZE);
-		const auto len = MIN(header.size, BYTES - offset - HEADER_SIZE);
+		const auto len = MIN(header.size, _bytes - offset - HEADER_SIZE);
 		memcpy(_buff + offset + HEADER_SIZE, data, len);
 		memcpy(_buff, data + len, header.size - len);
 
@@ -62,7 +71,7 @@ public:
 		const auto need_block = (header.size + HEADER_SIZE - 1) / BLOCK_SIZE + 1;
 		if (_empty_block < need_block)
 		{
-			_empty_block = BLOCK_NUM - write_idx + _read_idx.load(std::memory_order_acquire);
+			_empty_block = _block_num - write_idx + _read_idx.load(std::memory_order_acquire);
 			if (_empty_block < need_block)
 			{
 				// full return
@@ -70,9 +79,9 @@ public:
 			}
 		}
 
-		const auto offset = (write_idx & (BLOCK_NUM - 1)) * BLOCK_SIZE;
+		const auto offset = (write_idx & (_block_num - 1)) * BLOCK_SIZE;
 		memcpy(_buff + offset, &header, HEADER_SIZE);
-		const auto len = MIN(header.size, BYTES - offset - HEADER_SIZE);
+		const auto len = MIN(header.size, _bytes - offset - HEADER_SIZE);
 		memcpy(_buff + offset + HEADER_SIZE, data, len);
 		memcpy(_buff, data + len, header.size - len);
 
@@ -92,9 +101,9 @@ public:
 			return false;
 		}
 
-		const auto offset = (read_idx & (BLOCK_NUM - 1)) * BLOCK_SIZE;
+		const auto offset = (read_idx & (_block_num - 1)) * BLOCK_SIZE;
 		memcpy(header, _buff + offset, HEADER_SIZE);
-		const auto len = MIN(header->size, BYTES - offset - HEADER_SIZE);
+		const auto len = MIN(header->size, _bytes - offset - HEADER_SIZE);
 		memcpy(data, _buff + offset + HEADER_SIZE, len);
 		memcpy(data + len, _buff, header->size - len);
 
@@ -108,8 +117,11 @@ public:
 	}
 
 private:
-	alignas(CACHELINE_SIZE) char _buff[BYTES] = {};
+	alignas(CACHELINE_SIZE) size_t _block_num;
+	alignas(CACHELINE_SIZE) size_t _bytes;
+	alignas(CACHELINE_SIZE) char * _buff;
 	alignas(CACHELINE_SIZE) std::atomic<size_t> _write_idx = {0};
+	alignas(CACHELINE_SIZE) size_t _padding = 0;
 	alignas(CACHELINE_SIZE) std::atomic<size_t> _read_idx = {0};
 	alignas(CACHELINE_SIZE) size_t _empty_block = 0;
 };
