@@ -24,6 +24,7 @@ public:
 
 	~ObjectPool()
 	{
+		_objects.clear();
 	}
 
 public:
