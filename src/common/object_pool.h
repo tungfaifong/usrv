@@ -17,8 +17,7 @@ namespace usrv
         static constexpr size_t MAX_SIZE = 1024;
 
     public:
-        ObjectPool(size_t init_num = INIT_SIZE, size_t max_num = MAX_SIZE) : max_num_(max_num),
-            destructor_(nullptr)
+        ObjectPool(size_t init_num = INIT_SIZE, size_t max_num = MAX_SIZE) : max_num_(max_num)
         {
             for (auto i = 0; i < init_num; ++i)
             {
@@ -45,33 +44,22 @@ namespace usrv
             return std::move(std::shared_ptr<T>(obj, del_func_));
         }
 
-        void SetDestructor(std::function<void(T * obj)> func)
-        {
-            destructor_ = func;
-        }
-
     private:
         const std::function<void(T * obj)> del_func_ = [this](T * obj)
         {
-            if (destructor_ != nullptr)
-            {
-                destructor_(obj);
-            }
-
             if (objects_.size() >= max_num_)
             {
                 delete obj;
                 return;
             }
 
+            obj->~T();
             objects_.emplace_back(obj);
         };
 
     private:
         std::list<T *> objects_;
         size_t max_num_;
-
-        std::function<void(T * obj)> destructor_;
     };
 }
 
