@@ -14,12 +14,9 @@ template<typename T>
 class ObjectPool
 {
 public:
-	ObjectPool(size_t init_num)
+	ObjectPool(size_t alloc_num): _alloc_num(alloc_num)
 	{
-		for (auto i = 0; i < init_num; ++i)
-		{
-			_objects.emplace_back(std::move(std::make_shared<T>()));
-		}
+		Allocate();
 	}
 
 	~ObjectPool()
@@ -27,27 +24,34 @@ public:
 		_objects.clear();
 	}
 
-public:
-	std::shared_ptr<T> Get()
+	void Allocate()
 	{
-		if (!_objects.empty())
+		for (size_t i = 0; i < _alloc_num; ++i)
 		{
-			auto obj = std::move(_objects.back());
-			_objects.pop_back();
-			return std::move(obj);
-		}
-		else
-		{
-			return std::move(std::make_shared<T>());
+			_objects.emplace_back(std::make_shared<T>());
 		}
 	}
 
-	void Return(std::shared_ptr<T> && obj)
+public:
+	std::shared_ptr<T> Get()
+	{
+		if(_objects.empty())
+		{
+			Allocate();
+		}
+
+		auto obj = std::move(_objects.back());
+		_objects.pop_back();
+		return obj;
+	}
+
+	void Put(std::shared_ptr<T> && obj)
 	{
 		_objects.emplace_back(std::move(obj));
 	}
 
-private:
+public:
+	size_t _alloc_num;
 	std::vector<std::shared_ptr<T>> _objects;
 };
 

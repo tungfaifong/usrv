@@ -3,36 +3,43 @@
 #include <iostream>
 
 #include "unit_manager.h"
-#include "network/tcp_server.h"
+#include "units/server_unit.h"
 
-bool run_tcp_server(int port)
+class Game : public usrv::Unit
 {
-    usrv::UnitManager mgr(10);
+public:
+	Game() = default;
+	~Game() = default;
 
-    auto tcp_server = std::make_shared<usrv::TcpServer>(mgr.IOContext(), mgr.Interval());
+	virtual bool Start() { return true; };
+	virtual void Update(usrv::intvl_t interval);
+	virtual void Stop() { };
+};
 
-    tcp_server->RegisterOnRecv([&](usrv::NetID net_id, const char * data, size_t data_size) {
-        std::cout << "net_id:" << net_id << " data:" << data << std::endl;
+void Game::Update(usrv::intvl_t interval)
+{
+	auto server = std::dynamic_pointer_cast<usrv::ServerUnit>(usrv::UnitManager::Instance()->Get("server"));
 
-        auto server = std::dynamic_pointer_cast<usrv::TcpServer>(mgr.Get("server"));
-        server->Send(net_id, data, data_size);
-        });
+	usrv::NETID net_id;
+	char buff[UINT16_MAX];
+	uint16_t size;
+	while(server->Recv(&net_id, buff, &size))
+	{
+		printf("recv: %d %.*s", net_id, size, buff);
+		server->Send(net_id, buff, size);
+	}
+}
 
-    tcp_server->RegisterOnConnect([&](usrv::NetID net_id, std::string ip, usrv::Port port) {
-        std::cout << "net_id:" << net_id << " ip:" << ip << " port:" << port << " connect to tcp server" << std::endl;
-        });
+bool run_tcp_server(usrv::PORT port)
+{
+	usrv::UnitManager::Instance()->Register("server", std::move(std::make_shared<usrv::ServerUnit>(1024, 1024 * 1024)));
+	usrv::UnitManager::Instance()->Register("game", std::move(std::make_shared<Game>()));
 
-    tcp_server->RegisterOnDisconnect([](usrv::NetID net_id) {
-        std::cout << "net_id:" << net_id << " disconnect from tcp server" << std::endl;
-        });
+	auto server = std::dynamic_pointer_cast<usrv::ServerUnit>(usrv::UnitManager::Instance()->Get("server"));
 
-    mgr.Register("server", std::move(tcp_server));
+	server->Listen(port);
 
-    auto server = std::dynamic_pointer_cast<usrv::TcpServer>(mgr.Get("server"));
+	usrv::UnitManager::Instance()->Run(10);
 
-    server->Listen(port);
-    
-    mgr.Run();
-
-    return true;
+	return true;
 }

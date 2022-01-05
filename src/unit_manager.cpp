@@ -97,6 +97,10 @@ void UnitManager::_MainLoop()
 			_Update(interval);
 			start = now;
 		}
+		else
+		{
+			usleep((_interval - interval) * (CLOCKS_PER_SEC / SEC2MILLISEC));
+		}
 	}
 }
 

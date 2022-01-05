@@ -10,6 +10,7 @@
 
 #include "unit.h"
 #include "util/common.h"
+#include "util/object_pool.h"
 #include "util/spsc_queue.hpp"
 
 NAMESPACE_OPEN
@@ -19,7 +20,7 @@ class Peer;
 class ServerUnit : public Unit, public std::enable_shared_from_this<ServerUnit>
 {
 public:
-	ServerUnit(size_t spsc_blk_num);
+	ServerUnit(size_t peer_pool_num, size_t spsc_blk_num);
 	virtual ~ServerUnit() = default;
 
 	virtual bool Start() override final;
@@ -36,9 +37,9 @@ public:
 private:
 	void _IoStart();
 	asio::awaitable<void> _IoUpdate();
-	asio::awaitable<void> _IoListen(asio::ip::tcp::acceptor & acceptor);
-	asio::awaitable<void> _IoConnect(asio::ip::tcp::resolver & resolver, IP ip, PORT port);
-	void _IoAddPeer(asio::ip::tcp::socket socket);
+	asio::awaitable<void> _IoListen(PORT port);
+	asio::awaitable<void> _IoConnect(IP ip, PORT port);
+	void _IoAddPeer(asio::ip::tcp::socket && socket);
 	void _IoDelPeer(const NETID & net_id);
 	NETID _IoGetNetID() { return ++_net_id; }
 
@@ -49,6 +50,7 @@ private:
 	intvl_t _io_interval;
 
 	NETID _net_id = 0;
+	ObjectPool<Peer> _peer_pool;
 	std::map<NETID, std::shared_ptr<Peer>> _peers;
 
 	friend class Peer;
@@ -60,11 +62,11 @@ private:
 class Peer : public std::enable_shared_from_this<Peer> 
 {
 public:
-	Peer(const NETID & net_id, asio::ip::tcp::socket socket, ServerUnit & server);
-	virtual ~Peer();
+	Peer() = default;
+	virtual ~Peer() = default;
 
 public:
-	void Start();
+	void Start(const NETID & net_id, asio::ip::tcp::socket && socket, std::shared_ptr<ServerUnit> server);
 	void Stop();
 	void Send(const char * data, size_t size);
 
@@ -74,8 +76,8 @@ private:
 
 private:
 	NETID _net_id = INVALID_NET_ID;
-	asio::ip::tcp::socket _socket;
-	ServerUnit & _server;
+	std::shared_ptr<asio::ip::tcp::socket> _socket;
+	std::shared_ptr<ServerUnit> _server;
 	char _recv_buff[MESSAGE_BODY_SIZE];
 };
 

@@ -3,6 +3,8 @@
 #ifndef SINGLETON_HPP
 #define SINGLETON_HPP
 
+#include <memory>
+
 #include "noncopyable.hpp"
 #include "nonmovable.hpp"
 
@@ -12,16 +14,20 @@ template<class T>
 class Singleton : public noncopyable, public nonmovable
 {
 public:
-	static T * Instance()
+	static std::shared_ptr<T> Instance()
 	{
-		static T instance;
-		return &instance; 
+		return _instance; 
 	}
 
 protected:
 	Singleton() = default;
 	~Singleton() = default;
-}; 
+
+	static std::shared_ptr<T> _instance;
+};
+
+template<class T>
+std::shared_ptr<T> Singleton<T>::_instance = std::make_shared<T>();
 
 NAMESPACE_CLOSE
 

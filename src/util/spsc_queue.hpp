@@ -8,7 +8,6 @@
 #include <cassert>
 #include <cstring>
 #include <new>
-#include <stdlib.h>
 
 NAMESPACE_OPEN
 
@@ -36,12 +35,12 @@ public:
 	SpscQueue(size_t block_num):_block_num(block_num), _bytes(_block_num * BLOCK_SIZE)
 	{
 		assert(_block_num && !(_block_num & (_block_num - 1)));
-		_buff = (char *)_aligned_malloc(_bytes, CACHELINE_SIZE);
+		_buff = (char *)aligned_alloc(CACHELINE_SIZE, _bytes);
 	}
 
 	~SpscQueue()
 	{
-		_aligned_free(_buff);
+		free(_buff);
 	}
 
 	// block push

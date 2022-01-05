@@ -2,116 +2,46 @@
 
 #include <iostream>
 
-#include "asio.hpp"
+#include "unit_manager.h"
+#include "units/server_unit.h"
 
-#include "network/message.h"
-
-class Client
+class Client : public usrv::Unit
 {
 public:
-    Client(asio::io_context & io_context, const asio::ip::tcp::resolver::results_type& endpoints) : io_context_(io_context),
-        socket_(io_context)
-    {
-        Connect(endpoints);
-    }
+	Client() = default;
+	~Client() = default;
 
-    void Connect(const asio::ip::tcp::resolver::results_type& endpoints)
-    {
-        asio::async_connect(socket_, endpoints,
-            [this](asio::error_code ec, asio::ip::tcp::endpoint ep)
-            {
-                if (!ec)
-                {
-                    RecvHead();
-                }
-                else
-                {
-                    socket_.close();
-                }
-            });
-    }
-
-    void RecvHead()
-    {
-        msg_.ResetData();
-        asio::async_read(socket_,
-            asio::buffer(msg_.Data(), usrv::MESSAGE_HEAD_SIZE),
-            [this](asio::error_code ec, std::size_t size)
-            {
-                if (!ec)
-                {
-                    msg_.DecodeHead();
-                    RecvBody();
-                }
-                else
-                {
-                    socket_.close();
-                }
-            });
-    }
-
-    void RecvBody()
-    {
-        asio::async_read(socket_,
-            asio::buffer(msg_.Body(), msg_.BodySize()),
-            [this](asio::error_code ec, std::size_t size)
-            {
-                if (!ec)
-                {
-                    std::cout << msg_.Body() << std::endl;
-                    RecvHead();
-                }
-                else
-                {
-                    socket_.close();
-                }
-            });
-    }
-
-    void Send(const char * data, int data_size)
-    {
-        usrv::Message<usrv::Buffer> msg(data, data_size);
-        asio::async_write(socket_,
-            asio::buffer(msg.Data(), msg.Size()),
-            [this](asio::error_code ec, std::size_t size)
-            {
-                if (!ec)
-                {
-
-                }
-            });
-    }
-private:
-    asio::io_context & io_context_;
-    asio::ip::tcp::socket socket_;
-    usrv::Message<usrv::FixedBuffer<usrv::MESSAGE_SIZE>> msg_;
+	virtual bool Start() { return true; };
+	virtual void Update(usrv::intvl_t interval);
+	virtual void Stop() { };
 };
 
-bool run_tcp_client(std::string host, std::string port, int client_num)
+void Client::Update(usrv::intvl_t interval)
 {
-    asio::io_context io_context;
-    asio::ip::tcp::resolver resolver(io_context);
-    auto endpoints = resolver.resolve(host, port);
-    std::vector<std::unique_ptr<Client>> clients;
-    for (auto i = 0; i < client_num; ++i)
-    {
-        clients.emplace_back(std::make_unique<Client>(io_context, endpoints));
-    }
+	auto server = std::dynamic_pointer_cast<usrv::ServerUnit>(usrv::UnitManager::Instance()->Get("server"));
+	usrv::NETID net_id = 1;
+	const char * buff = "echo check 1 check 2;\n";
+	server->Send(net_id, buff, strlen(buff));
 
-    std::thread t([&io_context]() {
-        io_context.run();
-        });
+	usrv::NETID recv_net_id = 1;
+	char rec_buff[UINT16_MAX];
+	uint16_t size;
+	while(server->Recv(&recv_net_id, rec_buff, &size))
+	{
+		printf("recv: %d %.*s", recv_net_id, size, buff);
+	}
+}
 
-    while (true)
-    {
-        for (auto & client : clients)
-        {
-            const char * str = "echo";
-            client->Send(str, (int)strlen(str));
-        }
-    }
+bool run_tcp_client(usrv::IP host, usrv::PORT port, int client_num)
+{
+	usrv::UnitManager::Instance()->Register("server", std::move(std::make_shared<usrv::ServerUnit>(1024, 1024 * 1024)));
+	usrv::UnitManager::Instance()->Register("game", std::move(std::make_shared<Client>()));
 
-    t.join();
+	auto server = std::dynamic_pointer_cast<usrv::ServerUnit>(usrv::UnitManager::Instance()->Get("server"));
 
-    return true;
+	server->Connect(host, port);
+
+	usrv::UnitManager::Instance()->Run(10);
+
+	return true;
 }

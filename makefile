@@ -6,7 +6,7 @@ CXX_FLAGS = -Wall -fdiagnostics-color=always -g -std=c++20
 
 # 文件单独
 TARGET := main
-SUB_DIR = src src/util src/units demo demo/timer
+SUB_DIR = src src/util src/units demo demo/network demo/timer
 LINK_FLAGS = -lpthread
 
 BUILD_DIR := out

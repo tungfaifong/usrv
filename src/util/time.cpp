@@ -9,12 +9,12 @@ time_t Now()
 	return time(NULL);
 }
 
-uint64_t ClockMS(clock_t clk)
+intvl_t ClockMS(clock_t clk)
 {
 	return clk / (CLOCKS_PER_SEC / SEC2MILLISEC);
 }
 
-uint64_t ClockMS()
+intvl_t ClockMS()
 {
 	return ClockMS(clock());
 }
