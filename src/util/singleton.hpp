@@ -12,13 +12,13 @@ template<class T>
 class Singleton : public noncopyable, public nonmovable
 {
 public:
-	static T & Instance()
+	static T * Instance()
 	{
 		static T instance;
 		return &instance; 
 	}
 
-private:
+protected:
 	Singleton() = default;
 	~Singleton() = default;
 }; 
