@@ -4,8 +4,7 @@
 
 #include "util/time.h"
 
-namespace usrv
-{
+NAMESPACE_OPEN
 	
 TimerUnit::TimerUnit()
 {
@@ -47,4 +46,4 @@ void TimerUnit::CreateTimer(intvl_t time, std::function<void()> && callback)
 	_timers.emplace(std::move(t));
 }
 
-}
+NAMESPACE_CLOSE

@@ -10,8 +10,7 @@
 
 #include "unit.h"
 
-namespace usrv
-{
+NAMESPACE_OPEN
 
 class Timer
 {
@@ -47,6 +46,6 @@ private:
 	std::priority_queue<Timer, std::vector<Timer>, std::greater<Timer> > _timers;
 };
 
-}
+NAMESPACE_CLOSE
 
 #endif // USRV_TIMER_UNIT_H

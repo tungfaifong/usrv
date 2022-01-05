@@ -1,13 +1,14 @@
 // Copyright (c) 2022 TungFai Fong <iam@tungfaifong.com>
 
-#ifndef USRV_TIME_HPP
-#define USRV_TIME_HPP
+#ifndef TIME_H
+#define TIME_H
 
 #include <cstdint>
 #include <time.h>
 
-namespace usrv
-{
+#include "common.h"
+
+NAMESPACE_OPEN
 
 static constexpr uint32_t MINUTE_SEC = 60;
 static constexpr uint32_t HOUR_SEC = 60 * MINUTE_SEC;
@@ -73,6 +74,6 @@ int NextWeekInterval(int wday, int hour, int minute, int second);
 
 int NextMonthInterval(int mday, int hour, int minute, int second);
 
-}
+NAMESPACE_CLOSE
 
-#endif // USRV_TIME_HPP
+#endif // TIME_H

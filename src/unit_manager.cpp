@@ -5,14 +5,7 @@
 #include "unit.h"
 #include "util/time.h"
 
-namespace usrv
-{
-
-UnitManager * UnitManager::Instance()
-{
-	static UnitManager instance;
-	return &instance;
-}
+NAMESPACE_OPEN
 
 bool UnitManager::Register(const std::string & name, std::shared_ptr<Unit> && unit)
 {
@@ -20,6 +13,8 @@ bool UnitManager::Register(const std::string & name, std::shared_ptr<Unit> && un
 	{
 		return false;
 	}
+
+	unit->OnRegister(shared_from_this());
 
 	_units.insert(std::make_pair(name, std::move(unit)));
 
@@ -53,6 +48,11 @@ void UnitManager::Run(intvl_t interval)
 void UnitManager::SetExit(bool exit)
 {
 	_exit = exit;
+}
+
+intvl_t UnitManager::Interval()
+{
+	return _interval;
 }
 
 bool UnitManager::_Start()
@@ -100,4 +100,4 @@ void UnitManager::_MainLoop()
 	}
 }
 
-}
+NAMESPACE_CLOSE

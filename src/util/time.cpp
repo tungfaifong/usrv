@@ -2,8 +2,7 @@
 
 #include "time.h"
 
-namespace usrv
-{
+NAMESPACE_OPEN
 
 time_t Now()
 {
@@ -104,4 +103,4 @@ int NextMonthInterval(int mday, int hour, int minute, int second)
 	return now_max_mday * DAY_SEC - ((now_tm.tm_mday - 1) * DAY_SEC) - (now_tm.tm_hour * HOUR_SEC) - (now_tm.tm_min * MINUTE_SEC) - now_tm.tm_sec + (mday - 1) * DAY_SEC + hour * HOUR_SEC + minute * MINUTE_SEC + second;
 }
 
-}
+NAMESPACE_CLOSE

@@ -1,15 +1,14 @@
 // Copyright (c) 2022 TungFai Fong <iam@tungfaifong.com>
 // A single producer single consumer lock-free queue based on ring buffer.
 
-#ifndef USRV_SPSC_QUEUE_HPP
-#define USRV_SPSC_QUEUE_HPP
+#ifndef SPSC_QUEUE_HPP
+#define SPSC_QUEUE_HPP
 
 #include <atomic>
 #include <cstring>
 #include <new>
 
-namespace usrv
-{
+NAMESPACE_OPEN
 
 #define MIN(x, y) x < y ? x : y
 
@@ -115,6 +114,6 @@ private:
 	alignas(CACHELINE_SIZE) size_t _empty_block = 0;
 };
 
-}
+NAMESPACE_CLOSE
 
-#endif // USRV_SPSC_QUEUE_HPP
+#endif // SPSC_QUEUE_HPP

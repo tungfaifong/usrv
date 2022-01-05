@@ -2,8 +2,9 @@
 
 #include "server_unit.h"
 
-namespace usrv
-{
+#include "unit_manager.h"
+
+NAMESPACE_OPEN
 
 // ServerUnit
 ServerUnit::ServerUnit(): _timer(_io_context)
@@ -16,8 +17,10 @@ ServerUnit::~ServerUnit()
 
 bool ServerUnit::Start()
 {
-	_io_thread = std::thread([this](){
-		_IoStart();
+	_io_interval = _mgr->Interval();
+
+	_io_thread = std::thread([self = shared_from_this()](){
+		self->_IoStart();
 	});
 
 	return true;
@@ -47,9 +50,9 @@ void ServerUnit::Connect(IP ip, PORT port)
 
 void ServerUnit::Disconnect(NETID net_id)
 {
-	asio::post(_io_context, [this, &net_id](){
-		auto peer = _peers.find(net_id);
-		if(peer == _peers.end())
+	asio::post(_io_context, [self = shared_from_this(), &net_id](){
+		auto peer = self->_peers.find(net_id);
+		if(peer == self->_peers.end())
 		{
 			return;
 		}
@@ -116,7 +119,7 @@ asio::awaitable<void> ServerUnit::_IoUpdate()
 			peer->second->Send(_send_buff, header.size);
 		}
 
-		_timer.expires_after(std::chrono::milliseconds(10));
+		_timer.expires_after(std::chrono::milliseconds(_io_interval));
 		asio::error_code ec;
 		co_await _timer.async_wait(redirect_error(asio::use_awaitable, ec));
 	}
@@ -216,4 +219,4 @@ asio::awaitable<void> Peer::_Recv()
 	}
 }
 
-}
+NAMESPACE_CLOSE

@@ -12,12 +12,11 @@
 #include "util/common.h"
 #include "util/spsc_queue.hpp"
 
-namespace usrv
-{
+NAMESPACE_OPEN
 
 class Peer;
 
-class ServerUnit : public Unit
+class ServerUnit : public Unit, public std::enable_shared_from_this<ServerUnit>
 {
 public:
 	using MsgQueue = SpscQueue<SPSC_QUEUE_BLOCK_NUM>;
@@ -49,6 +48,7 @@ private:
 	std::thread _io_thread;
 	asio::io_context _io_context;
 	asio::steady_timer _timer;
+	intvl_t _io_interval;
 
 	NETID _net_id = 0;
 	std::map<NETID, std::shared_ptr<Peer>> _peers;
@@ -81,6 +81,6 @@ private:
 	char _recv_buff[MESSAGE_BODY_SIZE];
 };
 
-}
+NAMESPACE_CLOSE
 
 #endif // USRV_SERVER_UNIT_H

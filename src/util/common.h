@@ -1,13 +1,18 @@
 // Copyright (c) 2022 TungFai Fong <iam@tungfaifong.com>
 
-#ifndef USRV_COMMON_H
-#define USRV_COMMON_H
+#ifndef COMMON_H
+#define COMMON_H
 
 #include <stdint.h>
 #include <string>
 
-namespace usrv
+#define NAMESPACE_OPEN namespace \
+usrv \
 {
+#define NAMESPACE_CLOSE \
+}
+
+NAMESPACE_OPEN
 
 using intvl_t = uint64_t;
 
@@ -22,6 +27,6 @@ static constexpr NETID INVALID_NET_ID = -1;
 static constexpr uint16_t MESSAGE_HEAD_SIZE = sizeof(uint16_t);
 static constexpr uint16_t MESSAGE_BODY_SIZE = UINT16_MAX - MESSAGE_HEAD_SIZE;
 
-}
+NAMESPACE_CLOSE
 
-#endif // USRV_COMMON_H
+#endif // COMMON_H

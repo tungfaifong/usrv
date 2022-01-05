@@ -6,31 +6,20 @@
 #include <map>
 #include <memory>
 
-#include "util/common.h"
+#include "util/singleton.hpp"
 
-namespace usrv
-{
+NAMESPACE_OPEN
 
 class Unit;
 
-class UnitManager
+class UnitManager : public Singleton<UnitManager>, public std::enable_shared_from_this<UnitManager>
 {
 public:
-	UnitManager(const UnitManager&) = delete;
-	UnitManager& operator=(const UnitManager&) = delete;
-	UnitManager(UnitManager&&) = delete;
-	UnitManager& operator=(UnitManager&&) = delete;
-
-private:
-	UnitManager() = default;
-	~UnitManager() = default;
-
-public:
-	static UnitManager * Instance();
 	bool Register(const std::string & name, std::shared_ptr<Unit> && unit);
 	std::shared_ptr<Unit> Get(const std::string &name);
 	void Run(intvl_t interval);
 	void SetExit(bool exit);
+	intvl_t Interval();
 
 private:
 	bool _Start();
@@ -44,6 +33,6 @@ private:
 	std::map<std::string, std::shared_ptr<Unit>> _units;
 };
 
-}
+NAMESPACE_CLOSE
 
 #endif // USRV_UNIT_MANAGER_H
