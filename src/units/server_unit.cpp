@@ -118,7 +118,7 @@ asio::awaitable<void> ServerUnit::_IoUpdate()
 					continue;
 				}
 
-				peer->Send(_send_buff, header.size);
+				co_await peer->Send(_send_buff, header.size);
 			}
 
 			_timer.expires_after(ms_t(_io_interval));
@@ -202,12 +202,7 @@ void Peer::Stop()
 	_server = nullptr;
 }
 
-void Peer::Send(const char * data, uint16_t size)
-{
-	asio::co_spawn(_socket->get_executor(), _Send(data, size), asio::detached);
-}
-
-asio::awaitable<void> Peer::_Send(const char * data, uint16_t size)
+asio::awaitable<void> Peer::Send(const char * data, uint16_t size)
 {
 	try
 	{

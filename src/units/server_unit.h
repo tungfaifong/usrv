@@ -43,6 +43,8 @@ private:
 	void _IoDelPeer(NETID net_id);
 
 private:
+	friend class Peer;
+
 	std::thread _io_thread;
 	asio::io_context _io_context;
 	asio::steady_timer _timer;
@@ -51,7 +53,6 @@ private:
 	ObjectPool<Peer> _peer_pool;
 	ObjectList<Peer> _peers;
 
-	friend class Peer;
 	SpscQueue _send_queue;
 	SpscQueue _recv_queue;
 	char _send_buff[MESSAGE_BODY_SIZE];
@@ -66,10 +67,9 @@ public:
 public:
 	void Start(NETID net_id, asio::ip::tcp::socket && socket, const std::shared_ptr<ServerUnit> & server);
 	void Stop();
-	void Send(const char * data, uint16_t size);
-
+	asio::awaitable<void> Send(const char * data, uint16_t size);
+	
 private:
-	asio::awaitable<void> _Send(const char * data, uint16_t size);
 	asio::awaitable<void> _Recv();
 
 private:
