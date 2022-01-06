@@ -18,7 +18,7 @@ public:
 	virtual bool Start() = 0;
 	virtual void Update(intvl_t interval) = 0;
 	virtual void Stop() = 0;
-	virtual void OnRegister(std::shared_ptr<UnitManager> mgr) { _mgr = mgr; }
+	virtual void OnRegister(const std::shared_ptr<UnitManager> & mgr) { _mgr = mgr; }
 
 protected:
 	std::shared_ptr<UnitManager> _mgr;

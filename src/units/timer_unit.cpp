@@ -13,7 +13,7 @@ bool TimerUnit::Start()
 
 void TimerUnit::Update(intvl_t interval)
 {
-	auto now = ClockMS();
+	auto now = ClockMs();
 	while(!_timers.empty())
 	{
 		auto timer = _timers.top();
@@ -34,7 +34,7 @@ void TimerUnit::Stop()
 
 void TimerUnit::CreateTimer(intvl_t time, std::function<void()> && callback)
 {
-	Timer t(ClockMS() + time, std::move(callback));
+	Timer t(ClockMs() + time, std::move(callback));
 	_timers.emplace(std::move(t));
 }
 

@@ -58,9 +58,9 @@ inline bool CheckMDay(int mday, int year, int month)
 
 time_t Now();
 
-intvl_t ClockMS(clock_t clk);
+intvl_t ClockMs(clock_t clk);
 
-intvl_t ClockMS();
+intvl_t ClockMs();
 
 int TimeZone(bool recal = false);
 

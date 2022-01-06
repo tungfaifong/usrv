@@ -37,9 +37,12 @@ void ServerUnit::Listen(PORT port)
 	asio::co_spawn(_io_context, _IoListen(port), asio::detached);
 }
 
-void ServerUnit::Connect(IP ip, PORT port)
+NETID ServerUnit::Connect(const IP & ip, PORT port)
 {
-	asio::co_spawn(_io_context, _IoConnect(ip, port), asio::detached);
+	std::promise<NETID> promise_net_id;
+	auto future_net_id = promise_net_id.get_future();
+	asio::co_spawn(_io_context, _IoConnect(ip, port, promise_net_id), asio::detached);
+	return future_net_id.get();
 }
 
 void ServerUnit::Disconnect(NETID net_id)
@@ -69,17 +72,17 @@ bool ServerUnit::Send(NETID net_id, const char * data, uint16_t size)
 	return true;
 }
 
-bool ServerUnit::Recv(NETID * net_id, char * data, uint16_t * size)
+bool ServerUnit::Recv(NETID & net_id, char * data, uint16_t & size)
 {
 	SpscQueue::Header header;
 
-	if(!_recv_queue.TryPop(data, &header))
+	if(!_recv_queue.TryPop(data, header))
 	{
 		return false;
 	}
 
-	*size = header.size;
-	*net_id = header.data16;
+	size = header.size;
+	net_id = header.data16;
 
 	return true;
 }
@@ -93,59 +96,82 @@ void ServerUnit::_IoStart()
 
 asio::awaitable<void> ServerUnit::_IoUpdate()
 {
-	while(true)
+	try
 	{
-		while(!_send_queue.Empty())
+		while(true)
 		{
-			SpscQueue::Header header;
-
-			if(!_send_queue.TryPop(_send_buff, &header))
+			while(!_send_queue.Empty())
 			{
-				continue;
+				SpscQueue::Header header;
+
+				if(!_send_queue.TryPop(_send_buff, header))
+				{
+					continue;
+				}
+
+				auto peer = _peers.find(header.data16);
+				if(peer == _peers.end())
+				{
+					continue;
+				}
+
+				peer->second->Send(_send_buff, header.size);
 			}
 
-			auto peer = _peers.find(header.data16);
-			if(peer == _peers.end())
-			{
-				continue;
-			}
-
-			peer->second->Send(_send_buff, header.size);
+			_timer.expires_after(std::chrono::milliseconds(_io_interval));
+			asio::error_code ec;
+			co_await _timer.async_wait(redirect_error(asio::use_awaitable, ec));
 		}
-
-		_timer.expires_after(std::chrono::milliseconds(_io_interval));
-		asio::error_code ec;
-		co_await _timer.async_wait(redirect_error(asio::use_awaitable, ec));
+	}
+	catch(const std::exception & e)
+	{
+		
 	}
 }
 
 asio::awaitable<void> ServerUnit::_IoListen(PORT port)
 {
-	asio::ip::tcp::acceptor acceptor(_io_context, asio::ip::tcp::endpoint(asio::ip::tcp::v6(), port));
-	while(true)
+	try
 	{
-		auto socket = co_await acceptor.async_accept(asio::use_awaitable);
-		_IoAddPeer(std::move(socket));
+		asio::ip::tcp::acceptor acceptor(_io_context, asio::ip::tcp::endpoint(asio::ip::tcp::v6(), port));
+		while(true)
+		{
+			auto socket = co_await acceptor.async_accept(asio::use_awaitable);
+			_IoAddPeer(std::move(socket));
+		}
+	}
+	catch(const std::exception & e)
+	{
+
 	}
 }
 
-asio::awaitable<void> ServerUnit::_IoConnect(IP ip, PORT port)
+asio::awaitable<void> ServerUnit::_IoConnect(const IP & ip, PORT port, std::promise<NETID> & promise_net_id)
 {
-	asio::ip::tcp::resolver resolver(_io_context);
-	auto socket = asio::ip::tcp::socket(_io_context);
-	auto endpoint = resolver.resolve(ip, std::to_string(port));
-	co_await asio::async_connect(socket, endpoint, asio::use_awaitable);
-	_IoAddPeer(std::move(socket));
+	try
+	{
+		asio::ip::tcp::resolver resolver(_io_context);
+		auto socket = asio::ip::tcp::socket(_io_context);
+		auto endpoint = resolver.resolve(ip, std::to_string(port));
+		co_await asio::async_connect(socket, endpoint, asio::use_awaitable);
+		auto net_id = _IoAddPeer(std::move(socket));
+		promise_net_id.set_value(net_id);
+	}
+	catch(const std::exception & e)
+	{
+		
+	}
 }
 
-void ServerUnit::_IoAddPeer(asio::ip::tcp::socket && socket)
+NETID ServerUnit::_IoAddPeer(asio::ip::tcp::socket && socket)
 {
-	auto net_id = _IoGetNetID();
+	auto net_id = _IoGetNetId();
 	_peers[net_id] = std::move(_peer_pool.Get());
 	_peers[net_id]->Start(net_id, std::move(socket), shared_from_this());
+	return net_id;
 }
 
-void ServerUnit::_IoDelPeer(const NETID & net_id)
+void ServerUnit::_IoDelPeer(NETID net_id)
 {
 	auto peer = _peers.find(net_id);
 	if(peer == _peers.end())
@@ -157,7 +183,7 @@ void ServerUnit::_IoDelPeer(const NETID & net_id)
 }
 
 // Peer
-void Peer::Start(const NETID & net_id, asio::ip::tcp::socket && socket, std::shared_ptr<ServerUnit> server)
+void Peer::Start(NETID net_id, asio::ip::tcp::socket && socket, const std::shared_ptr<ServerUnit> & server)
 {
 	_net_id = net_id;
 	_socket = std::make_shared<asio::ip::tcp::socket>(std::move(socket));
@@ -185,7 +211,7 @@ asio::awaitable<void> Peer::_Send(const char * data, size_t size)
 	{
 		co_await asio::async_write(*_socket, asio::buffer(data, size), asio::use_awaitable);
 	}
-	catch (std::exception& e)
+	catch (const std::exception & e)
 	{
 		Stop();
 	}
@@ -212,7 +238,7 @@ asio::awaitable<void> Peer::_Recv()
 			}
 		}
 	}
-	catch (std::exception& e)
+	catch (const std::exception & e)
 	{
 		Stop();
 	}

@@ -87,11 +87,11 @@ void UnitManager::_MainLoop()
 {
 	auto start = clock();
 	auto now = start;
-	auto interval = ClockMS(now - start);
+	auto interval = ClockMs(now - start);
 	while (!_exit)
 	{
 		now = clock();
-		interval = ClockMS(now - start);
+		interval = ClockMs(now - start);
 		if (interval >= _interval)
 		{
 			_Update(interval);

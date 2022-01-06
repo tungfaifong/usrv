@@ -44,7 +44,7 @@ public:
 	}
 
 	// block push
-	void Push(const char * data, Header header)
+	void Push(const char * data, const Header & header)
 	{
 		const auto write_idx = _write_idx.load(std::memory_order_relaxed);
 		const auto need_block = (header.size + HEADER_SIZE - 1) / BLOCK_SIZE + 1;
@@ -64,7 +64,7 @@ public:
 		_write_idx.store(write_idx + need_block, std::memory_order_release);
 	}
 
-	bool TryPush(const char * data, Header header)
+	bool TryPush(const char * data, const Header & header)
 	{
 		const auto write_idx = _write_idx.load(std::memory_order_relaxed);
 		const auto need_block = (header.size + HEADER_SIZE - 1) / BLOCK_SIZE + 1;
@@ -90,7 +90,7 @@ public:
 		return true;
 	}
 
-	bool TryPop(char * data, Header * header)
+	bool TryPop(char * data, Header & header)
 	{
 		const auto read_idx = _read_idx.load(std::memory_order_relaxed);
 		const auto write_idx = _write_idx.load(std::memory_order_acquire);
@@ -101,12 +101,12 @@ public:
 		}
 
 		const auto offset = (read_idx & (_block_num - 1)) * BLOCK_SIZE;
-		memcpy(header, _buff + offset, HEADER_SIZE);
-		const auto len = MIN(header->size, _bytes - offset - HEADER_SIZE);
+		memcpy(&header, _buff + offset, HEADER_SIZE);
+		const auto len = MIN(header.size, _bytes - offset - HEADER_SIZE);
 		memcpy(data, _buff + offset + HEADER_SIZE, len);
-		memcpy(data + len, _buff, header->size - len);
+		memcpy(data + len, _buff, header.size - len);
 
-		_read_idx.store(read_idx + (header->size + HEADER_SIZE - 1) / BLOCK_SIZE + 1, std::memory_order_release);
+		_read_idx.store(read_idx + (header.size + HEADER_SIZE - 1) / BLOCK_SIZE + 1, std::memory_order_release);
 		return true;
 	}
 

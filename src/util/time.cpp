@@ -9,14 +9,14 @@ time_t Now()
 	return time(NULL);
 }
 
-intvl_t ClockMS(clock_t clk)
+intvl_t ClockMs(clock_t clk)
 {
 	return clk / (CLOCKS_PER_SEC / SEC2MILLISEC);
 }
 
-intvl_t ClockMS()
+intvl_t ClockMs()
 {
-	return ClockMS(clock());
+	return ClockMs(clock());
 }
 
 int TimeZone(bool recal/* = false */)

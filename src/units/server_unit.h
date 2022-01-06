@@ -29,27 +29,27 @@ public:
 
 public:
 	void Listen(PORT port);
-	void Connect(IP ip, PORT port);
+	NETID Connect(const IP & ip, PORT port);
 	void Disconnect(NETID net_id);
 	bool Send(NETID net_id, const char * data, uint16_t size);
-	bool Recv(NETID * net_id, char * data, uint16_t * size);
+	bool Recv(NETID & net_id, char * data, uint16_t & size);
 
 private:
 	void _IoStart();
 	asio::awaitable<void> _IoUpdate();
 	asio::awaitable<void> _IoListen(PORT port);
-	asio::awaitable<void> _IoConnect(IP ip, PORT port);
-	void _IoAddPeer(asio::ip::tcp::socket && socket);
-	void _IoDelPeer(const NETID & net_id);
-	NETID _IoGetNetID() { return ++_net_id; }
+	asio::awaitable<void> _IoConnect(const IP & ip, PORT port, std::promise<NETID> & promise_net_id);
+	NETID _IoAddPeer(asio::ip::tcp::socket && socket);
+	void _IoDelPeer(NETID net_id);
+	NETID _IoGetNetId() { return ++_net_id == INVALID_NET_ID ? ++_net_id : _net_id ; }
 
 private:
 	std::thread _io_thread;
 	asio::io_context _io_context;
 	asio::steady_timer _timer;
-	intvl_t _io_interval;
+	intvl_t _io_interval = 0;
 
-	NETID _net_id = 0;
+	NETID _net_id = INVALID_NET_ID;
 	ObjectPool<Peer> _peer_pool;
 	std::map<NETID, std::shared_ptr<Peer>> _peers;
 
@@ -66,7 +66,7 @@ public:
 	virtual ~Peer() = default;
 
 public:
-	void Start(const NETID & net_id, asio::ip::tcp::socket && socket, std::shared_ptr<ServerUnit> server);
+	void Start(NETID net_id, asio::ip::tcp::socket && socket, const std::shared_ptr<ServerUnit> & server);
 	void Stop();
 	void Send(const char * data, size_t size);
 
