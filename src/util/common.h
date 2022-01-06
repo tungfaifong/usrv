@@ -20,7 +20,7 @@ using NETID = uint32_t;
 using IP = std::string;
 using PORT = uint16_t;
 
-static constexpr NETID INVALID_NET_ID = 0;
+static constexpr NETID INVALID_NET_ID = -1;
 
 static constexpr uint16_t MESSAGE_HEAD_SIZE = sizeof(uint16_t);
 static constexpr uint16_t MESSAGE_BODY_SIZE = UINT16_MAX - MESSAGE_HEAD_SIZE;
