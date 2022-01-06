@@ -3,14 +3,14 @@
 #ifndef USRV_SERVER_UNIT_H
 #define USRV_SERVER_UNIT_H
 
-#include <map>
 #include <thread>
 
 #include "asio.hpp"
 
 #include "unit.h"
 #include "util/common.h"
-#include "util/object_pool.h"
+#include "util/object_list.hpp"
+#include "util/object_pool.hpp"
 #include "util/spsc_queue.hpp"
 
 NAMESPACE_OPEN
@@ -20,7 +20,7 @@ class Peer;
 class ServerUnit : public Unit, public std::enable_shared_from_this<ServerUnit>
 {
 public:
-	ServerUnit(size_t peer_pool_num, size_t spsc_blk_num);
+	ServerUnit(size_t pp_alloc_num, size_t ps_alloc_num, size_t spsc_blk_num);
 	virtual ~ServerUnit() = default;
 
 	virtual bool Start() override final;
@@ -41,7 +41,6 @@ private:
 	asio::awaitable<void> _IoConnect(const IP & ip, PORT port, std::promise<NETID> & promise_net_id);
 	NETID _IoAddPeer(asio::ip::tcp::socket && socket);
 	void _IoDelPeer(NETID net_id);
-	NETID _IoGetNetId() { return ++_net_id == INVALID_NET_ID ? ++_net_id : _net_id ; }
 
 private:
 	std::thread _io_thread;
@@ -49,9 +48,8 @@ private:
 	asio::steady_timer _timer;
 	intvl_t _io_interval = 0;
 
-	NETID _net_id = INVALID_NET_ID;
 	ObjectPool<Peer> _peer_pool;
-	std::map<NETID, std::shared_ptr<Peer>> _peers;
+	ObjectList<Peer> _peers;
 
 	friend class Peer;
 	SpscQueue _send_queue;

@@ -4,7 +4,6 @@
 #define OBJECT_POOL_HPP
 
 #include <vector>
-#include <memory>
 
 #include "common.h"
 
@@ -16,7 +15,7 @@ class ObjectPool
 public:
 	ObjectPool(size_t alloc_num): _alloc_num(alloc_num)
 	{
-		Allocate();
+		_Allocate();
 	}
 
 	~ObjectPool()
@@ -24,20 +23,11 @@ public:
 		_objects.clear();
 	}
 
-	void Allocate()
-	{
-		for (size_t i = 0; i < _alloc_num; ++i)
-		{
-			_objects.emplace_back(std::make_shared<T>());
-		}
-	}
-
-public:
 	std::shared_ptr<T> Get()
 	{
 		if(_objects.empty())
 		{
-			Allocate();
+			_Allocate();
 		}
 
 		auto obj = std::move(_objects.back());
@@ -48,6 +38,16 @@ public:
 	void Put(std::shared_ptr<T> && obj)
 	{
 		_objects.emplace_back(std::move(obj));
+	}
+
+private:
+	void _Allocate()
+	{
+		_objects.reserve(_objects.capacity() + _alloc_num);
+		for (size_t i = 0; i < _alloc_num; ++i)
+		{
+			_objects.emplace_back(std::make_shared<T>());
+		}
 	}
 
 public:

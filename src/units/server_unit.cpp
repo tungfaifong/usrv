@@ -7,7 +7,9 @@
 NAMESPACE_OPEN
 
 // ServerUnit
-ServerUnit::ServerUnit(size_t peer_pool_num, size_t spsc_blk_num): _timer(_io_context), _peer_pool(peer_pool_num), _send_queue(spsc_blk_num), _recv_queue(spsc_blk_num)
+ServerUnit::ServerUnit(size_t pp_alloc_num, size_t ps_alloc_num, size_t spsc_blk_num): _timer(_io_context), 
+	_peer_pool(pp_alloc_num), _peers(ps_alloc_num), 
+	_send_queue(spsc_blk_num), _recv_queue(spsc_blk_num)
 {
 }
 
@@ -48,12 +50,12 @@ NETID ServerUnit::Connect(const IP & ip, PORT port)
 void ServerUnit::Disconnect(NETID net_id)
 {
 	asio::post(_io_context, [self = shared_from_this(), &net_id](){
-		auto peer = self->_peers.find(net_id);
-		if(peer == self->_peers.end())
+		auto peer = self->_peers[net_id];
+		if(!peer)
 		{
 			return;
 		}
-		peer->second->Stop();
+		peer->Stop();
 	});
 }
 
@@ -109,13 +111,13 @@ asio::awaitable<void> ServerUnit::_IoUpdate()
 					continue;
 				}
 
-				auto peer = _peers.find(header.data16);
-				if(peer == _peers.end())
+				auto peer = _peers[header.data16];
+				if(!peer)
 				{
 					continue;
 				}
 
-				peer->second->Send(_send_buff, header.size);
+				peer->Send(_send_buff, header.size);
 			}
 
 			_timer.expires_after(std::chrono::milliseconds(_io_interval));
@@ -165,21 +167,20 @@ asio::awaitable<void> ServerUnit::_IoConnect(const IP & ip, PORT port, std::prom
 
 NETID ServerUnit::_IoAddPeer(asio::ip::tcp::socket && socket)
 {
-	auto net_id = _IoGetNetId();
-	_peers[net_id] = std::move(_peer_pool.Get());
+	auto net_id = _peers.Insert(std::move(_peer_pool.Get()));
 	_peers[net_id]->Start(net_id, std::move(socket), shared_from_this());
 	return net_id;
 }
 
 void ServerUnit::_IoDelPeer(NETID net_id)
 {
-	auto peer = _peers.find(net_id);
-	if(peer == _peers.end())
+	auto peer = _peers[net_id];
+	if(!peer)
 	{
 		return;
 	}
-	_peer_pool.Put(std::move(peer->second));
-	_peers.erase(net_id);
+	_peer_pool.Put(std::move(peer));
+	_peers.Erase(net_id);
 }
 
 // Peer
