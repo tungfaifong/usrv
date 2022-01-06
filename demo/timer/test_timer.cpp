@@ -6,6 +6,8 @@
 #include "units/timer_unit.h"
 #include "util/time.h"
 
+usrv::UNITKEY TIMERKEY;
+
 void call1()
 {
 	printf("call timeout 1\n");
@@ -20,9 +22,9 @@ public:
 
 int run_timer()
 {
-	usrv::UnitManager::Instance()->Register("timer_manager", std::move(std::make_shared<usrv::TimerUnit>()));
+	TIMERKEY = usrv::UnitManager::Instance()->Register(std::move(std::make_shared<usrv::TimerUnit>()));
 
-	static auto timer_manager = std::dynamic_pointer_cast<usrv::TimerUnit>(usrv::UnitManager::Instance()->Get("timer_manager"));
+	static auto timer_manager = std::dynamic_pointer_cast<usrv::TimerUnit>(usrv::UnitManager::Instance()->Get(TIMERKEY));
 
 	printf("main start\n");
 

@@ -7,28 +7,24 @@
 
 NAMESPACE_OPEN
 
-bool UnitManager::Register(const std::string & name, std::shared_ptr<Unit> && unit)
+UNITKEY UnitManager::Register(std::shared_ptr<Unit> && unit)
 {
-	if (_units.find(name) != _units.end())
-	{
-		return false;
-	}
+	auto key = _units.size();
 
 	unit->OnRegister(shared_from_this());
 
-	_units.insert(std::make_pair(name, std::move(unit)));
+	_units.emplace_back(std::move(unit));
 
-	return true;
+	return key;
 }
 
-std::shared_ptr<Unit> UnitManager::Get(const std::string & name)
+std::shared_ptr<Unit> UnitManager::Get(UNITKEY key)
 {
-	auto iter = _units.find(name);
-	if (iter == _units.end())
+	if(key >= _units.size())
 	{
 		return nullptr;
 	}
-	return iter->second;
+	return _units[key];
 }
 
 void UnitManager::Run(intvl_t interval)
@@ -59,7 +55,7 @@ bool UnitManager::_Start()
 {
 	for (auto & unit : _units)
 	{
-		if (!unit.second->Start())
+		if (!unit->Start())
 		{
 			return false;
 		}
@@ -71,7 +67,7 @@ void UnitManager::_Update(intvl_t interval)
 {
 	for (auto & unit : _units)
 	{
-		unit.second->Update(interval);
+		unit->Update(interval);
 	}
 }
 
@@ -79,7 +75,7 @@ void UnitManager::_Stop()
 {
 	for (auto & unit : _units)
 	{
-		unit.second->Stop();
+		unit->Stop();
 	}
 }
 

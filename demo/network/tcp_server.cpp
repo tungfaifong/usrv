@@ -5,6 +5,9 @@
 #include "unit_manager.h"
 #include "units/server_unit.h"
 
+usrv::UNITKEY SSERVERKEY;
+usrv::UNITKEY GAMEKEY;
+
 class Game : public usrv::Unit
 {
 public:
@@ -18,7 +21,7 @@ public:
 
 void Game::Update(usrv::intvl_t interval)
 {
-	auto server = std::dynamic_pointer_cast<usrv::ServerUnit>(usrv::UnitManager::Instance()->Get("server"));
+	auto server = std::dynamic_pointer_cast<usrv::ServerUnit>(usrv::UnitManager::Instance()->Get(SSERVERKEY));
 
 	usrv::NETID net_id;
 	char buff[UINT16_MAX];
@@ -32,10 +35,10 @@ void Game::Update(usrv::intvl_t interval)
 
 bool run_tcp_server(usrv::PORT port)
 {
-	usrv::UnitManager::Instance()->Register("server", std::move(std::make_shared<usrv::ServerUnit>(1024, 1024, 1024 * 1024)));
-	usrv::UnitManager::Instance()->Register("game", std::move(std::make_shared<Game>()));
+	SSERVERKEY = usrv::UnitManager::Instance()->Register(std::move(std::make_shared<usrv::ServerUnit>(1024, 1024, 1024 * 1024)));
+	usrv::UnitManager::Instance()->Register(std::move(std::make_shared<Game>()));
 
-	auto server = std::dynamic_pointer_cast<usrv::ServerUnit>(usrv::UnitManager::Instance()->Get("server"));
+	auto server = std::dynamic_pointer_cast<usrv::ServerUnit>(usrv::UnitManager::Instance()->Get(SSERVERKEY));
 
 	server->Listen(port);
 

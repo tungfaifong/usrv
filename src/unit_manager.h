@@ -3,8 +3,8 @@
 #ifndef USRV_UNIT_MANAGER_H
 #define USRV_UNIT_MANAGER_H
 
-#include <map>
 #include <memory>
+#include <vector>
 
 #include "util/singleton.hpp"
 
@@ -19,8 +19,8 @@ public:
 	~UnitManager() = default;
 
 public:
-	bool Register(const std::string & name, std::shared_ptr<Unit> && unit);
-	std::shared_ptr<Unit> Get(const std::string & name);
+	UNITKEY Register(std::shared_ptr<Unit> && unit);
+	std::shared_ptr<Unit> Get(UNITKEY key);
 	void Run(intvl_t interval);
 	void SetExit(bool exit);
 	intvl_t Interval();
@@ -34,7 +34,7 @@ private:
 private:
 	bool _exit = false;
 	intvl_t _interval;
-	std::map<std::string, std::shared_ptr<Unit>> _units;
+	std::vector<std::shared_ptr<Unit>> _units;
 };
 
 NAMESPACE_CLOSE
