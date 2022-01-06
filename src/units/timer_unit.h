@@ -4,18 +4,18 @@
 #define USRV_TIMER_UNIT_H
 
 #include <functional>
-#include <memory>
 #include <queue>
 #include <time.h>
 
 #include "unit.h"
+#include "util/time.h"
 
 NAMESPACE_OPEN
 
 class Timer
 {
 public:
-	Timer(intvl_t time, std::function<void()> && callback):_time(time), _callback(std::move(callback)) {}
+	Timer(sys_clock_t time, std::function<void()> && callback):_time(time), _callback(std::move(callback)) {}
 	virtual ~Timer() {}
 
 	bool operator > (const Timer & t) const
@@ -24,7 +24,7 @@ public:
 	}
 
 private:
-	intvl_t _time;
+	sys_clock_t _time;
 	std::function<void()> _callback;
 	friend class TimerUnit;
 };

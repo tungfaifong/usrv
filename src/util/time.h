@@ -3,12 +3,16 @@
 #ifndef TIME_H
 #define TIME_H
 
-#include <cstdint>
-#include <time.h>
+#include <chrono>
 
 #include "common.h"
 
 NAMESPACE_OPEN
+
+using sys_clock_t = std::chrono::system_clock::time_point;
+using std_clock_t = std::chrono::steady_clock::time_point;
+using ms_t = std::chrono::milliseconds;
+using ns_t = std::chrono::nanoseconds;
 
 static constexpr uint32_t MINUTE_SEC = 60;
 static constexpr uint32_t HOUR_SEC = 60 * MINUTE_SEC;
@@ -58,9 +62,11 @@ inline bool CheckMDay(int mday, int year, int month)
 
 time_t Now();
 
-intvl_t ClockMs(clock_t clk);
+sys_clock_t SysNow();
 
-intvl_t ClockMs();
+std_clock_t StdNow();
+
+intvl_t Ns2Ms(ns_t ns);
 
 int TimeZone(bool recal = false);
 

@@ -3,6 +3,7 @@
 #include "server_unit.h"
 
 #include "unit_manager.h"
+#include "util/time.h"
 
 NAMESPACE_OPEN
 
@@ -120,7 +121,7 @@ asio::awaitable<void> ServerUnit::_IoUpdate()
 				peer->Send(_send_buff, header.size);
 			}
 
-			_timer.expires_after(std::chrono::milliseconds(_io_interval));
+			_timer.expires_after(ms_t(_io_interval));
 			asio::error_code ec;
 			co_await _timer.async_wait(redirect_error(asio::use_awaitable, ec));
 		}
@@ -201,15 +202,16 @@ void Peer::Stop()
 	_server = nullptr;
 }
 
-void Peer::Send(const char * data, size_t size)
+void Peer::Send(const char * data, uint16_t size)
 {
 	asio::co_spawn(_socket->get_executor(), _Send(data, size), asio::detached);
 }
 
-asio::awaitable<void> Peer::_Send(const char * data, size_t size)
+asio::awaitable<void> Peer::_Send(const char * data, uint16_t size)
 {
 	try
 	{
+		co_await asio::async_write(*_socket, asio::buffer(&size, MESSAGE_HEAD_SIZE), asio::use_awaitable);
 		co_await asio::async_write(*_socket, asio::buffer(data, size), asio::use_awaitable);
 	}
 	catch (const std::exception & e)

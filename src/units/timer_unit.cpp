@@ -2,8 +2,6 @@
 
 #include "timer_unit.h"
 
-#include "util/time.h"
-
 NAMESPACE_OPEN
 
 bool TimerUnit::Start()
@@ -13,7 +11,7 @@ bool TimerUnit::Start()
 
 void TimerUnit::Update(intvl_t interval)
 {
-	auto now = ClockMs();
+	auto now = SysNow();
 	while(!_timers.empty())
 	{
 		auto timer = _timers.top();
@@ -34,7 +32,7 @@ void TimerUnit::Stop()
 
 void TimerUnit::CreateTimer(intvl_t time, std::function<void()> && callback)
 {
-	Timer t(ClockMs() + time, std::move(callback));
+	Timer t(SysNow() + ms_t(time), std::move(callback));
 	_timers.emplace(std::move(t));
 }
 

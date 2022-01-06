@@ -3,6 +3,8 @@
 #ifndef USRV_UNIT_H
 #define USRV_UNIT_H
 
+#include <memory>
+
 #include "util/common.h"
 
 NAMESPACE_OPEN

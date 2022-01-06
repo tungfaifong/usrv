@@ -66,10 +66,10 @@ public:
 public:
 	void Start(NETID net_id, asio::ip::tcp::socket && socket, const std::shared_ptr<ServerUnit> & server);
 	void Stop();
-	void Send(const char * data, size_t size);
+	void Send(const char * data, uint16_t size);
 
 private:
-	asio::awaitable<void> _Send(const char * data, size_t size);
+	asio::awaitable<void> _Send(const char * data, uint16_t size);
 	asio::awaitable<void> _Recv();
 
 private:

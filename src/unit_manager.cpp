@@ -2,6 +2,8 @@
 
 #include "unit_manager.h"
 
+#include <chrono>
+
 #include "unit.h"
 #include "util/time.h"
 
@@ -81,17 +83,17 @@ void UnitManager::_Stop()
 
 void UnitManager::_MainLoop()
 {
-	auto start = clock();
+	auto start = SysNow();
 	auto now = start;
-	auto interval = ClockMs(now - start);
+	auto interval = Ns2Ms(now - start);
 	while (!_exit)
 	{
-		now = clock();
-		interval = ClockMs(now - start);
+		now = SysNow();
+		interval = Ns2Ms(now - start);
 		if (interval >= _interval)
 		{
-			_Update(interval);
 			start = now;
+			_Update(interval);
 		}
 		else
 		{

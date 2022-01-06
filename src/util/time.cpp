@@ -6,17 +6,22 @@ NAMESPACE_OPEN
 
 time_t Now()
 {
-	return time(NULL);
+	return std::chrono::system_clock::to_time_t(SysNow());
 }
 
-intvl_t ClockMs(clock_t clk)
+sys_clock_t SysNow()
 {
-	return clk / (CLOCKS_PER_SEC / SEC2MILLISEC);
+	return std::chrono::system_clock::now();
 }
 
-intvl_t ClockMs()
+std_clock_t StdNow()
 {
-	return ClockMs(clock());
+	return std::chrono::steady_clock::now();
+}
+
+intvl_t Ns2Ms(ns_t ns)
+{
+	return std::chrono::duration_cast<ms_t>(ns).count();
 }
 
 int TimeZone(bool recal/* = false */)
@@ -24,7 +29,7 @@ int TimeZone(bool recal/* = false */)
 	static int TIME_ZONE = -1;
 	if (TIME_ZONE == -1 || recal)
 	{
-		time_t now = Now();
+		auto now = Now();
 		tm local_tm;
 		tm gm_tm;
 		localtime_r(&now, &local_tm);
@@ -41,7 +46,7 @@ int NextMinuteInterval(int second)
 		return -1;
 	}
 
-	time_t now = Now();
+	auto now = Now();
 	return MINUTE_SEC - now % MINUTE_SEC + second;
 }
 
@@ -52,7 +57,7 @@ int NextHourInterval(int minute, int second)
 		return -1;
 	}
 
-	time_t now = Now();
+	auto now = Now();
 	return HOUR_SEC - now % HOUR_SEC + minute * MINUTE_SEC + second;
 }
 
@@ -63,7 +68,7 @@ int NextDayInterval(int hour, int minute, int second)
 		return -1;
 	}
 
-	time_t now = Now();
+	auto now = Now();
 	return DAY_SEC - TimeZone() * HOUR_SEC - now % DAY_SEC + hour * HOUR_SEC + minute * MINUTE_SEC + second;
 }
 
@@ -74,7 +79,7 @@ int NextWeekInterval(int wday, int hour, int minute, int second)
 		return -1;
 	}
 
-	time_t now = Now();
+	auto now = Now();
 	return WEEK_SEC - TimeZone() * HOUR_SEC - (now - 4 * DAY_SEC) % WEEK_SEC + wday * DAY_SEC + hour * HOUR_SEC + minute * MINUTE_SEC + second;
 }
 
@@ -85,7 +90,7 @@ int NextMonthInterval(int mday, int hour, int minute, int second)
 		return -1;
 	}
 
-	time_t now = Now();
+	auto now = Now();
 	tm now_tm;
 	localtime_r(&now, &now_tm);
 
