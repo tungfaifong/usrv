@@ -4,6 +4,8 @@
 #include "units/timer_unit.h"
 #include "util/time.h"
 
+using namespace usrv;
+
 enum UNITKEY
 {
 	TIMER = 0,
@@ -29,18 +31,18 @@ public:
 
 int run_timer()
 {
-	usrv::UnitManager::Instance()->Init(UNITKEY::COUNT, UNITKEYSTR);
-	usrv::UnitManager::Instance()->Register(UNITKEY::TIMER, std::move(std::make_shared<usrv::TimerUnit>()));
+	UnitManager::Instance()->Init(UNITKEY::COUNT, UNITKEYSTR);
+	UnitManager::Instance()->Register(UNITKEY::TIMER, std::move(std::make_shared<TimerUnit>()));
 
-	static auto timer_manager = std::dynamic_pointer_cast<usrv::TimerUnit>(usrv::UnitManager::Instance()->Get(UNITKEY::TIMER));
+	static auto timer_manager = std::dynamic_pointer_cast<TimerUnit>(UnitManager::Instance()->Get(UNITKEY::TIMER));
 
 	CallObj a;
-	timer_manager->CreateTimer(3 * usrv::SEC2MILLISEC, call1);
-	timer_manager->CreateTimer(4 * usrv::SEC2MILLISEC, [](){ printf("call timeout 2\n"); });
-	timer_manager->CreateTimer(5 * usrv::SEC2MILLISEC, CallObj::call3);
-	timer_manager->CreateTimer(6 * usrv::SEC2MILLISEC, std::bind(&CallObj::call4, &a));
+	timer_manager->CreateTimer(3 * SEC2MILLISEC, call1);
+	timer_manager->CreateTimer(4 * SEC2MILLISEC, [](){ printf("call timeout 2\n"); });
+	timer_manager->CreateTimer(5 * SEC2MILLISEC, CallObj::call3);
+	timer_manager->CreateTimer(6 * SEC2MILLISEC, std::bind(&CallObj::call4, &a));
 
-	usrv::UnitManager::Instance()->Run(10);
+	UnitManager::Instance()->Run(10);
 
 	return 0;
 }
