@@ -20,7 +20,9 @@ class Peer;
 class ServerUnit : public Unit, public std::enable_shared_from_this<ServerUnit>
 {
 public:
-	ServerUnit(size_t pp_alloc_num, size_t ps_alloc_num, size_t spsc_blk_num);
+	static constexpr uint16_t CONNECT_WAIT_TIME = 3;
+
+	ServerUnit(size_t key, size_t pp_alloc_num, size_t ps_alloc_num, size_t spsc_blk_num);
 	virtual ~ServerUnit() = default;
 
 	virtual bool Start() override final;

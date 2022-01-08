@@ -8,7 +8,7 @@
 NAMESPACE_OPEN
 
 // ServerUnit
-ServerUnit::ServerUnit(size_t pp_alloc_num, size_t ps_alloc_num, size_t spsc_blk_num): _timer(_io_context), 
+ServerUnit::ServerUnit(size_t key, size_t pp_alloc_num, size_t ps_alloc_num, size_t spsc_blk_num): Unit(key), _timer(_io_context), 
 	_peer_pool(pp_alloc_num), _peers(ps_alloc_num), 
 	_send_queue(spsc_blk_num), _recv_queue(spsc_blk_num)
 {
@@ -45,6 +45,10 @@ NETID ServerUnit::Connect(const IP & ip, PORT port)
 	std::promise<NETID> promise_net_id;
 	auto future_net_id = promise_net_id.get_future();
 	asio::co_spawn(_io_context, _IoConnect(ip, port, promise_net_id), asio::detached);
+	if(future_net_id.wait_for(s_t(CONNECT_WAIT_TIME)) != std::future_status::ready)
+	{
+		return INVALID_NET_ID;
+	}
 	return future_net_id.get();
 }
 

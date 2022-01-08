@@ -3,24 +3,36 @@
 #include "unit_manager.h"
 
 #include <chrono>
+#include <string>
 
+#include "interfaces/logger_interface.h"
 #include "unit.h"
 #include "util/time.h"
 
 NAMESPACE_OPEN
 
-UNITKEY UnitManager::Register(std::shared_ptr<Unit> && unit)
+void UnitManager::Init(size_t unit_num)
 {
-	auto key = _units.size();
+	_units.resize(unit_num);
+}
+
+bool UnitManager::Register(std::shared_ptr<Unit> && unit)
+{
+	auto key = unit->Key();
+
+	if(key >= _units.size())
+	{
+		return false;
+	}
 
 	unit->OnRegister(shared_from_this());
 
-	_units.emplace_back(std::move(unit));
+	_units[key] = std::move(unit);
 
-	return key;
+	return true;
 }
 
-std::shared_ptr<Unit> UnitManager::Get(UNITKEY key)
+std::shared_ptr<Unit> UnitManager::Get(size_t key)
 {
 	if(key >= _units.size())
 	{
@@ -35,8 +47,11 @@ void UnitManager::Run(intvl_t interval)
 
 	if (!_Start())
 	{
+		logger::error("UnitManager::Run start fail.");
 		return;
 	}
+
+	logger::info("UnitManager::Run start success.");
 
 	_MainLoop();
 
@@ -59,8 +74,10 @@ bool UnitManager::_Start()
 	{
 		if (!unit->Start())
 		{
+			logger::error(fmt::format("UnitManager::_Start fail error key:{}", unit->Key()));
 			return false;
 		}
+		logger::error(fmt::format("UnitManager::_Start success key:{}", unit->Key()));
 	}
 	return true;
 }

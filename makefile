@@ -6,14 +6,20 @@ CXX_FLAGS = -Wall -fdiagnostics-color=always -g -std=c++20
 
 # 文件单独
 TARGET := main
-SUB_DIR = src src/util src/units demo demo/network demo/timer
-LINK_FLAGS = -lpthread
+SUB_DIR = src src/interfaces src/units src/util demo demo/network demo/timer
 
 BUILD_DIR := out
 
 PATH_3RDPARTY = ./3rdparty
+
 INC_ASIO = -I$(PATH_3RDPARTY)/asio-1.20.0
-INC_ALL := -I./src $(INC_ASIO)
+INC_FMT = -I$(PATH_3RDPARTY)/fmt-8.1.0/include
+INC_ALL := -I./src $(INC_ASIO) $(INC_FMT)
+
+LIB_FMT = -L$(PATH_3RDPARTY)/fmt-8.1.0/lib -lfmt
+LIB_ALL := $(LIB_FMT)
+
+LINK_FLAGS := $(LIB_FMT) -lpthread
 
 DEFINE += 
 

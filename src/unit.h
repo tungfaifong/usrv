@@ -14,7 +14,7 @@ class UnitManager;
 class Unit
 {
 public:
-	Unit() = default;
+	Unit(size_t key): _key(key) {}
 	virtual ~Unit() = default;
 
 	virtual bool Start() = 0;
@@ -22,7 +22,10 @@ public:
 	virtual void Stop() = 0;
 	virtual void OnRegister(const std::shared_ptr<UnitManager> & mgr) { _mgr = mgr; }
 
+	size_t Key() { return _key; }
+
 protected:
+	size_t _key;
 	std::shared_ptr<UnitManager> _mgr;
 };
 

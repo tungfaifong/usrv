@@ -19,8 +19,9 @@ public:
 	~UnitManager() = default;
 
 public:
-	UNITKEY Register(std::shared_ptr<Unit> && unit);
-	std::shared_ptr<Unit> Get(UNITKEY key);
+	void Init(size_t unit_num);
+	bool Register(std::shared_ptr<Unit> && unit);
+	std::shared_ptr<Unit> Get(size_t key);
 	void Run(intvl_t interval);
 	void SetExit(bool exit);
 	intvl_t Interval();

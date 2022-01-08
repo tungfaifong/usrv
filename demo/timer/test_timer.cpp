@@ -6,7 +6,11 @@
 #include "units/timer_unit.h"
 #include "util/time.h"
 
-usrv::UNITKEY TIMERKEY;
+enum UNITKEY
+{
+	TIMER = 0,
+	COUNT,
+};
 
 void call1()
 {
@@ -22,9 +26,10 @@ public:
 
 int run_timer()
 {
-	TIMERKEY = usrv::UnitManager::Instance()->Register(std::move(std::make_shared<usrv::TimerUnit>()));
+	usrv::UnitManager::Instance()->Init(UNITKEY::COUNT);
+	usrv::UnitManager::Instance()->Register(std::move(std::make_shared<usrv::TimerUnit>(UNITKEY::TIMER)));
 
-	static auto timer_manager = std::dynamic_pointer_cast<usrv::TimerUnit>(usrv::UnitManager::Instance()->Get(TIMERKEY));
+	static auto timer_manager = std::dynamic_pointer_cast<usrv::TimerUnit>(usrv::UnitManager::Instance()->Get(UNITKEY::TIMER));
 
 	printf("main start\n");
 

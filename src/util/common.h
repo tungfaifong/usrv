@@ -19,7 +19,6 @@ using intvl_t = uint64_t;
 using NETID = uint32_t;
 using IP = std::string;
 using PORT = uint16_t;
-using UNITKEY = size_t;
 
 static constexpr NETID INVALID_NET_ID = -1;
 

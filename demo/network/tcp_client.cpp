@@ -2,16 +2,21 @@
 
 #include <iostream>
 
+#include "interfaces/logger_interface.h"
 #include "unit_manager.h"
 #include "units/server_unit.h"
 
-usrv::UNITKEY CSERVERKEY;
-usrv::UNITKEY CLIENTKEY;
+enum UNITKEY
+{
+	SERVER = 0,
+	GAME,
+	COUNT,
+};
 
 class Client : public usrv::Unit
 {
 public:
-	Client() = default;
+	Client(size_t key): Unit(key) {}
 	~Client() = default;
 
 	virtual bool Start();
@@ -25,15 +30,20 @@ public:
 
 bool Client::Start()
 {
-	auto server = std::dynamic_pointer_cast<usrv::ServerUnit>(usrv::UnitManager::Instance()->Get(CSERVERKEY));
+	auto server = std::dynamic_pointer_cast<usrv::ServerUnit>(usrv::UnitManager::Instance()->Get(UNITKEY::SERVER));
 	_server_net_id = server->Connect(_host, _port);
+	if(_server_net_id == usrv::INVALID_NET_ID)
+	{
+		usrv::logger::error("client connect failed.");
+		return false;
+	}
 	return true;
 }
 
 void Client::Update(usrv::intvl_t interval)
 {
-	auto server = std::dynamic_pointer_cast<usrv::ServerUnit>(usrv::UnitManager::Instance()->Get(CSERVERKEY));
-	const char * buff = "echo check 1 check 2;\n";
+	auto server = std::dynamic_pointer_cast<usrv::ServerUnit>(usrv::UnitManager::Instance()->Get(UNITKEY::SERVER));
+	const char * buff = "echo check 1 check 2;";
 	server->Send(_server_net_id, buff, strlen(buff));
 
 	usrv::NETID recv_net_id = 1;
@@ -41,17 +51,18 @@ void Client::Update(usrv::intvl_t interval)
 	uint16_t size;
 	while(server->Recv(recv_net_id, rec_buff, size))
 	{
-		printf("recv: %d %.*s", recv_net_id, size, buff);
+		usrv::logger::info(fmt::format("recv: net_id:{} data:{}", recv_net_id, std::string(buff, size)));
 	}
 }
 
 bool run_tcp_client(usrv::IP host, usrv::PORT port, int client_num)
 {
-	CSERVERKEY = usrv::UnitManager::Instance()->Register(std::move(std::make_shared<usrv::ServerUnit>(1024, 1024, 1024 * 1024)));
-	CLIENTKEY = usrv::UnitManager::Instance()->Register(std::move(std::make_shared<Client>()));
+	usrv::UnitManager::Instance()->Init(UNITKEY::COUNT);
+	usrv::UnitManager::Instance()->Register(std::move(std::make_shared<usrv::ServerUnit>(UNITKEY::SERVER, 1024, 1024, 1024 * 1024)));
+	usrv::UnitManager::Instance()->Register(std::move(std::make_shared<Client>(UNITKEY::GAME)));
 
-	auto server = std::dynamic_pointer_cast<usrv::ServerUnit>(usrv::UnitManager::Instance()->Get(CSERVERKEY));
-	auto game = std::dynamic_pointer_cast<Client>(usrv::UnitManager::Instance()->Get(CLIENTKEY));
+	auto server = std::dynamic_pointer_cast<usrv::ServerUnit>(usrv::UnitManager::Instance()->Get(UNITKEY::SERVER));
+	auto game = std::dynamic_pointer_cast<Client>(usrv::UnitManager::Instance()->Get(UNITKEY::GAME));
 
 	game->_host= host;
 	game->_port = port;

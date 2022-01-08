@@ -32,7 +32,7 @@ private:
 class TimerUnit : public Unit
 {
 public:
-	TimerUnit() = default;
+	TimerUnit(size_t key): Unit(key) {}
 	virtual ~TimerUnit() = default;
 
 	virtual bool Start() override final;

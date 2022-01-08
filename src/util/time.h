@@ -11,6 +11,7 @@ NAMESPACE_OPEN
 
 using sys_clock_t = std::chrono::system_clock::time_point;
 using std_clock_t = std::chrono::steady_clock::time_point;
+using s_t = std::chrono::seconds;
 using ms_t = std::chrono::milliseconds;
 using ns_t = std::chrono::nanoseconds;
 
