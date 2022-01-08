@@ -13,10 +13,16 @@ enum UNITKEY
 	COUNT,
 };
 
+const std::string UNITKEYSTR[UNITKEY::COUNT] = 
+{
+	"SERVER",
+	"GAME"
+};
+
 class Game : public usrv::Unit
 {
 public:
-	Game(size_t key): Unit(key) {}
+	Game() = default;
 	~Game() = default;
 
 	virtual bool Start() { return true; };
@@ -40,9 +46,9 @@ void Game::Update(usrv::intvl_t interval)
 
 bool run_tcp_server(usrv::PORT port)
 {
-	usrv::UnitManager::Instance()->Init(UNITKEY::COUNT);
-	usrv::UnitManager::Instance()->Register(std::move(std::make_shared<usrv::ServerUnit>(UNITKEY::SERVER, 1024, 1024, 1024 * 1024)));
-	usrv::UnitManager::Instance()->Register(std::move(std::make_shared<Game>(UNITKEY::GAME)));
+	usrv::UnitManager::Instance()->Init(UNITKEY::COUNT, UNITKEYSTR);
+	usrv::UnitManager::Instance()->Register(UNITKEY::SERVER, std::move(std::make_shared<usrv::ServerUnit>(1024, 1024, 1024 * 1024)));
+	usrv::UnitManager::Instance()->Register(UNITKEY::GAME, std::move(std::make_shared<Game>()));
 
 	auto server = std::dynamic_pointer_cast<usrv::ServerUnit>(usrv::UnitManager::Instance()->Get(UNITKEY::SERVER));
 

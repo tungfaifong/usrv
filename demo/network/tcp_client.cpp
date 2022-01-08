@@ -13,10 +13,16 @@ enum UNITKEY
 	COUNT,
 };
 
+const std::string UNITKEYSTR[UNITKEY::COUNT] = 
+{
+	"SERVER",
+	"GAME"
+};
+
 class Client : public usrv::Unit
 {
 public:
-	Client(size_t key): Unit(key) {}
+	Client() = default;
 	~Client() = default;
 
 	virtual bool Start();
@@ -57,9 +63,9 @@ void Client::Update(usrv::intvl_t interval)
 
 bool run_tcp_client(usrv::IP host, usrv::PORT port, int client_num)
 {
-	usrv::UnitManager::Instance()->Init(UNITKEY::COUNT);
-	usrv::UnitManager::Instance()->Register(std::move(std::make_shared<usrv::ServerUnit>(UNITKEY::SERVER, 1024, 1024, 1024 * 1024)));
-	usrv::UnitManager::Instance()->Register(std::move(std::make_shared<Client>(UNITKEY::GAME)));
+	usrv::UnitManager::Instance()->Init(UNITKEY::COUNT, UNITKEYSTR);
+	usrv::UnitManager::Instance()->Register(UNITKEY::SERVER, std::move(std::make_shared<usrv::ServerUnit>(1024, 1024, 1024 * 1024)));
+	usrv::UnitManager::Instance()->Register(UNITKEY::GAME, std::move(std::make_shared<Client>()));
 
 	auto server = std::dynamic_pointer_cast<usrv::ServerUnit>(usrv::UnitManager::Instance()->Get(UNITKEY::SERVER));
 	auto game = std::dynamic_pointer_cast<Client>(usrv::UnitManager::Instance()->Get(UNITKEY::GAME));

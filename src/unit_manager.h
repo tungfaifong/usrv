@@ -19,8 +19,8 @@ public:
 	~UnitManager() = default;
 
 public:
-	void Init(size_t unit_num);
-	bool Register(std::shared_ptr<Unit> && unit);
+	void Init(size_t unit_num, const std::string * unit_key);
+	bool Register(size_t key, std::shared_ptr<Unit> && unit);
 	std::shared_ptr<Unit> Get(size_t key);
 	void Run(intvl_t interval);
 	void SetExit(bool exit);
@@ -35,6 +35,7 @@ private:
 private:
 	bool _exit = false;
 	intvl_t _interval;
+	const std::string * _unit_keys;
 	std::vector<std::shared_ptr<Unit>> _units;
 };
 

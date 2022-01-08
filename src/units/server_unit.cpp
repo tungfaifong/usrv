@@ -8,7 +8,7 @@
 NAMESPACE_OPEN
 
 // ServerUnit
-ServerUnit::ServerUnit(size_t key, size_t pp_alloc_num, size_t ps_alloc_num, size_t spsc_blk_num): Unit(key), _timer(_io_context), 
+ServerUnit::ServerUnit(size_t pp_alloc_num, size_t ps_alloc_num, size_t spsc_blk_num): _timer(_io_context), 
 	_peer_pool(pp_alloc_num), _peers(ps_alloc_num), 
 	_send_queue(spsc_blk_num), _recv_queue(spsc_blk_num)
 {

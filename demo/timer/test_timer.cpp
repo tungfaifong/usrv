@@ -12,6 +12,11 @@ enum UNITKEY
 	COUNT,
 };
 
+const std::string UNITKEYSTR[UNITKEY::COUNT] = 
+{
+	"TIMER"
+};
+
 void call1()
 {
 	printf("call timeout 1\n");
@@ -26,8 +31,8 @@ public:
 
 int run_timer()
 {
-	usrv::UnitManager::Instance()->Init(UNITKEY::COUNT);
-	usrv::UnitManager::Instance()->Register(std::move(std::make_shared<usrv::TimerUnit>(UNITKEY::TIMER)));
+	usrv::UnitManager::Instance()->Init(UNITKEY::COUNT, UNITKEYSTR);
+	usrv::UnitManager::Instance()->Register(UNITKEY::TIMER, std::move(std::make_shared<usrv::TimerUnit>()));
 
 	static auto timer_manager = std::dynamic_pointer_cast<usrv::TimerUnit>(usrv::UnitManager::Instance()->Get(UNITKEY::TIMER));
 

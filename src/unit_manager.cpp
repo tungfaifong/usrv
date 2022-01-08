@@ -11,15 +11,14 @@
 
 NAMESPACE_OPEN
 
-void UnitManager::Init(size_t unit_num)
+void UnitManager::Init(size_t unit_num, const std::string * unit_keys)
 {
 	_units.resize(unit_num);
+	_unit_keys = unit_keys;
 }
 
-bool UnitManager::Register(std::shared_ptr<Unit> && unit)
+bool UnitManager::Register(size_t key, std::shared_ptr<Unit> && unit)
 {
-	auto key = unit->Key();
-
 	if(key >= _units.size())
 	{
 		return false;
@@ -70,14 +69,14 @@ intvl_t UnitManager::Interval()
 
 bool UnitManager::_Start()
 {
-	for (auto & unit : _units)
+	for (size_t i = 0; i < _units.size(); ++i)
 	{
-		if (!unit->Start())
+		if (!_units[i]->Start())
 		{
-			logger::error(fmt::format("UnitManager::_Start fail error key:{}", unit->Key()));
+			logger::error(fmt::format("UnitManager::_Start {} fail", _unit_keys[i]));
 			return false;
 		}
-		logger::error(fmt::format("UnitManager::_Start success key:{}", unit->Key()));
+		logger::info(fmt::format("UnitManager::_Start {} success", _unit_keys[i]));
 	}
 	return true;
 }
