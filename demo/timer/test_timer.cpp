@@ -36,18 +36,13 @@ int run_timer()
 
 	static auto timer_manager = std::dynamic_pointer_cast<usrv::TimerUnit>(usrv::UnitManager::Instance()->Get(UNITKEY::TIMER));
 
-	printf("main start\n");
-
 	CallObj a;
 	timer_manager->CreateTimer(3 * usrv::SEC2MILLISEC, call1);
 	timer_manager->CreateTimer(4 * usrv::SEC2MILLISEC, [](){ printf("call timeout 2\n"); });
 	timer_manager->CreateTimer(5 * usrv::SEC2MILLISEC, CallObj::call3);
 	timer_manager->CreateTimer(6 * usrv::SEC2MILLISEC, std::bind(&CallObj::call4, &a));
 
-	printf("main run\n");
 	usrv::UnitManager::Instance()->Run(10);
-
-	printf("main exit\n");
 
 	return 0;
 }

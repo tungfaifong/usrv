@@ -46,11 +46,10 @@ void UnitManager::Run(intvl_t interval)
 
 	if (!_Start())
 	{
-		logger::error("UnitManager::Run start fail.");
 		return;
 	}
 
-	logger::info("UnitManager::Run start success.");
+	logger::info("UnitManager::Run start All units success");
 
 	_MainLoop();
 
@@ -91,9 +90,10 @@ void UnitManager::_Update(intvl_t interval)
 
 void UnitManager::_Stop()
 {
-	for (auto & unit : _units)
+	for (size_t i = 0; i < _units.size(); ++i)
 	{
-		unit->Stop();
+		_units[i]->Stop();
+		logger::info(fmt::format("UnitManager::_Stop {} success", _unit_keys[i]));
 	}
 }
 

@@ -6,8 +6,12 @@
 #include <stdint.h>
 #include <string>
 
+#ifndef NAMESPACE_NAME
+#define NAMESPACE_NAME usrv
+#endif
+
 #define NAMESPACE_OPEN namespace \
-usrv \
+NAMESPACE_NAME \
 {
 #define NAMESPACE_CLOSE \
 }
