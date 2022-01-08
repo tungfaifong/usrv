@@ -2,39 +2,17 @@
 
 #include "logger_interface.h"
 
+#include <iostream>
+
 NAMESPACE_OPEN
 
 namespace logger
 {
 
-void Logger::Trace(const std::string & log)
+void Logger::Log(Level level, const std::string & log)
 {
-	printf("[trace] %s \n", log.c_str());
-}
-
-void Logger::Debug(const std::string & log)
-{
-	printf("[debug] %s \n", log.c_str());
-}
-
-void Logger::Info(const std::string & log)
-{
-	printf("[info] %s \n", log.c_str());
-}
-
-void Logger::Warn(const std::string & log)
-{
-	printf("[warn] %s \n", log.c_str());
-}
-
-void Logger::Error(const std::string & log)
-{
-	printf("[error] %s \n", log.c_str());
-}
-
-void Logger::Critical(const std::string & log)
-{
-	printf("[critical] %s \n", log.c_str());
+	static std::string prefix[Level::COUNT] = {"[trace]", "[debug]", "[info]", "[warn]", "[error]", "[critical]"};
+	std::cout << prefix[level] << " " << log << std::endl;
 }
 
 }

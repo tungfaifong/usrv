@@ -16,46 +16,52 @@ namespace logger
 class Logger : public Singleton<Logger>
 {
 public:
+	enum Level
+	{
+		TRACE = 0,
+		DEBUG,
+		INFO,
+		WARN,
+		ERROR,
+		CRITICAL,
+		COUNT,
+	};
+
 	Logger() = default;
 	virtual ~Logger() = default;
 
 public:
-	void Trace(const std::string & log);
-	void Debug(const std::string & log);
-	void Info(const std::string & log);
-	void Warn(const std::string & log);
-	void Error(const std::string & log);
-	void Critical(const std::string & log);
+	void Log(Level level, const std::string & log);
 };
 
 inline void trace(const std::string & log)
 {
-	Logger::Instance()->Trace(log);
+	Logger::Instance()->Log(Logger::Level::TRACE, log);
 }
 
 inline void debug(const std::string & log)
 {
-	Logger::Instance()->Debug(log);
+	Logger::Instance()->Log(Logger::Level::DEBUG, log);
 }
 
 inline void info(const std::string & log)
 {
-	Logger::Instance()->Info(log);
+	Logger::Instance()->Log(Logger::Level::INFO, log);
 }
 
 inline void warn(const std::string & log)
 {
-	Logger::Instance()->Warn(log);
+	Logger::Instance()->Log(Logger::Level::WARN, log);
 }
 
 inline void error(const std::string & log)
 {
-	Logger::Instance()->Error(log);
+	Logger::Instance()->Log(Logger::Level::ERROR, log);
 }
 
 inline void critical(const std::string & log)
 {
-	Logger::Instance()->Critical(log);
+	Logger::Instance()->Log(Logger::Level::CRITICAL, log);
 }
 
 }
