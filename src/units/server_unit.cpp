@@ -111,7 +111,7 @@ asio::awaitable<void> ServerUnit::_IoUpdate()
 			{
 				SpscQueue::Header header;
 
-				if(!_send_queue.TryPop(_send_buff, header))
+				if(!_send_queue.TryPop(_send_buffer, header))
 				{
 					continue;
 				}
@@ -122,7 +122,7 @@ asio::awaitable<void> ServerUnit::_IoUpdate()
 					continue;
 				}
 
-				co_await peer->Send(_send_buff, header.size);
+				co_await peer->Send(_send_buffer, header.size);
 			}
 
 			_timer.expires_after(ms_t(_io_interval));
@@ -210,8 +210,9 @@ asio::awaitable<void> Peer::Send(const char * data, uint16_t size)
 {
 	try
 	{
-		co_await asio::async_write(*_socket, asio::buffer(&size, MESSAGE_HEAD_SIZE), asio::use_awaitable);
-		co_await asio::async_write(*_socket, asio::buffer(data, size), asio::use_awaitable);
+		memcpy(_send_buffer, &size, MESSAGE_HEAD_SIZE);
+		memcpy(_send_buffer + MESSAGE_HEAD_SIZE, data, size);
+		co_await asio::async_write(*_socket, asio::buffer(_send_buffer, MESSAGE_HEAD_SIZE + size), asio::use_awaitable);
 	}
 	catch (const std::exception & e)
 	{
@@ -227,14 +228,14 @@ asio::awaitable<void> Peer::_Recv()
 		{
 			uint16_t body_size = 0;
 			co_await asio::async_read(*_socket, asio::buffer(&body_size, MESSAGE_HEAD_SIZE), asio::use_awaitable);
-			co_await asio::async_read(*_socket, asio::buffer(_recv_buff, body_size), asio::use_awaitable);
+			co_await asio::async_read(*_socket, asio::buffer(_recv_buffer, body_size), asio::use_awaitable);
 
 			SpscQueue::Header header;
 			header.size = body_size;
 			header.data16 = _net_id;
 			header.data32 = 0;
 
-			if(!_server->_recv_queue.TryPush(_recv_buff, header))
+			if(!_server->_recv_queue.TryPush(_recv_buffer, header))
 			{
 
 			}

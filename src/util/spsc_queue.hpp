@@ -9,6 +9,8 @@
 #include <cstring>
 #include <new>
 
+#include "common.h"
+
 NAMESPACE_OPEN
 
 #define MIN(x, y) x < y ? x : y
@@ -35,12 +37,12 @@ public:
 	SpscQueue(size_t block_num):_block_num(block_num), _bytes(_block_num * BLOCK_SIZE)
 	{
 		assert(_block_num && !(_block_num & (_block_num - 1)));
-		_buff = (char *)aligned_alloc(CACHELINE_SIZE, _bytes);
+		_buffer = (char *)aligned_alloc(CACHELINE_SIZE, _bytes);
 	}
 
 	~SpscQueue()
 	{
-		free(_buff);
+		free(_buffer);
 	}
 
 	// block push
@@ -54,10 +56,10 @@ public:
 		}
 
 		const auto offset = (write_idx & (_block_num - 1)) * BLOCK_SIZE;
-		memcpy(_buff + offset, &header, HEADER_SIZE);
+		memcpy(_buffer + offset, &header, HEADER_SIZE);
 		const auto len = MIN(header.size, _bytes - offset - HEADER_SIZE);
-		memcpy(_buff + offset + HEADER_SIZE, data, len);
-		memcpy(_buff, data + len, header.size - len);
+		memcpy(_buffer + offset + HEADER_SIZE, data, len);
+		memcpy(_buffer, data + len, header.size - len);
 
 		_empty_block -= need_block;
 
@@ -79,10 +81,10 @@ public:
 		}
 
 		const auto offset = (write_idx & (_block_num - 1)) * BLOCK_SIZE;
-		memcpy(_buff + offset, &header, HEADER_SIZE);
+		memcpy(_buffer + offset, &header, HEADER_SIZE);
 		const auto len = MIN(header.size, _bytes - offset - HEADER_SIZE);
-		memcpy(_buff + offset + HEADER_SIZE, data, len);
-		memcpy(_buff, data + len, header.size - len);
+		memcpy(_buffer + offset + HEADER_SIZE, data, len);
+		memcpy(_buffer, data + len, header.size - len);
 
 		_empty_block -= need_block;
 
@@ -101,10 +103,10 @@ public:
 		}
 
 		const auto offset = (read_idx & (_block_num - 1)) * BLOCK_SIZE;
-		memcpy(&header, _buff + offset, HEADER_SIZE);
+		memcpy(&header, _buffer + offset, HEADER_SIZE);
 		const auto len = MIN(header.size, _bytes - offset - HEADER_SIZE);
-		memcpy(data, _buff + offset + HEADER_SIZE, len);
-		memcpy(data + len, _buff, header.size - len);
+		memcpy(data, _buffer + offset + HEADER_SIZE, len);
+		memcpy(data + len, _buffer, header.size - len);
 
 		_read_idx.store(read_idx + (header.size + HEADER_SIZE - 1) / BLOCK_SIZE + 1, std::memory_order_release);
 		return true;
@@ -118,7 +120,7 @@ public:
 private:
 	alignas(CACHELINE_SIZE) size_t _block_num;
 	alignas(CACHELINE_SIZE) size_t _bytes;
-	alignas(CACHELINE_SIZE) char * _buff;
+	alignas(CACHELINE_SIZE) char * _buffer;
 	alignas(CACHELINE_SIZE) std::atomic<size_t> _write_idx = {0};
 	alignas(CACHELINE_SIZE) size_t _padding = 0;
 	alignas(CACHELINE_SIZE) std::atomic<size_t> _read_idx = {0};

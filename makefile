@@ -19,7 +19,7 @@ INC_ALL := -I./src $(INC_ASIO) $(INC_FMT)
 LIB_FMT = -L$(PATH_3RDPARTY)/fmt-8.1.0/lib -lfmt
 LIB_ALL := $(LIB_FMT)
 
-LINK_FLAGS := $(LIB_FMT) -lpthread
+LINK_FLAGS := $(LIB_ALL) -lpthread
 
 DEFINE += 
 

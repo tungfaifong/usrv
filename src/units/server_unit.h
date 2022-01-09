@@ -57,7 +57,7 @@ private:
 
 	SpscQueue _send_queue;
 	SpscQueue _recv_queue;
-	char _send_buff[MESSAGE_BODY_SIZE];
+	char _send_buffer[MESSAGE_BODY_SIZE];
 };
 
 class Peer : public std::enable_shared_from_this<Peer> 
@@ -78,7 +78,8 @@ private:
 	NETID _net_id = INVALID_NET_ID;
 	std::shared_ptr<asio::ip::tcp::socket> _socket;
 	std::shared_ptr<ServerUnit> _server;
-	char _recv_buff[MESSAGE_BODY_SIZE];
+	char _send_buffer[MESSAGE_HEAD_SIZE + MESSAGE_BODY_SIZE];
+	char _recv_buffer[MESSAGE_BODY_SIZE];
 };
 
 NAMESPACE_CLOSE
