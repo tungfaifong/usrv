@@ -16,7 +16,7 @@ class Singleton : public noncopyable, public nonmovable
 public:
 	static std::shared_ptr<T> Instance()
 	{
-		return _instance; 
+		return _instance;
 	}
 
 protected:

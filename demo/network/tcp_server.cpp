@@ -47,7 +47,7 @@ void Game::Update(intvl_t interval)
 	uint16_t size;
 	while(server->Recv(net_id, buff, size))
 	{
-		// logger::info(fmt::format("recv: net_id:{} data:{}", net_id, std::string(buff, size)));
+		logger::info(fmt::format("recv: net_id:{} data:{}", net_id, std::string(buff, size)));
 		server->Send(net_id, buff, size);
 	}
 }
@@ -55,6 +55,8 @@ void Game::Update(intvl_t interval)
 bool run_tcp_server(PORT port)
 {
 	signal(SIGUSR1, SignalHandler);
+
+	logger::start(10, 1024 * 1024);
 
 	UnitManager::Instance()->Init(UNITKEY::COUNT, UNITKEYSTR);
 	UnitManager::Instance()->Register(UNITKEY::SERVER, std::move(std::make_shared<ServerUnit>(1024, 1024, 1024 * 1024)));
@@ -65,6 +67,8 @@ bool run_tcp_server(PORT port)
 	server->Listen(port);
 
 	UnitManager::Instance()->Run(10);
+
+	logger::stop();
 
 	return true;
 }

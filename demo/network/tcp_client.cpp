@@ -63,6 +63,8 @@ void Client::Update(intvl_t interval)
 
 bool run_tcp_client(IP host, PORT port, int client_num)
 {
+	logger::start(10, 1024 * 1024);
+
 	UnitManager::Instance()->Init(UNITKEY::COUNT, UNITKEYSTR);
 	UnitManager::Instance()->Register(UNITKEY::SERVER, std::move(std::make_shared<ServerUnit>(1024, 1024, 1024 * 1024)));
 	UnitManager::Instance()->Register(UNITKEY::GAME, std::move(std::make_shared<Client>()));
@@ -74,6 +76,8 @@ bool run_tcp_client(IP host, PORT port, int client_num)
 	game->_port = port;
 
 	UnitManager::Instance()->Run(10);
+
+	logger::stop();
 
 	return true;
 }

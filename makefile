@@ -2,7 +2,7 @@
 CC = gcc
 CXX = g++
 
-CXX_FLAGS = -Wall -fdiagnostics-color=always -g -std=c++20
+CXX_FLAGS = -Wall -fdiagnostics-color=always -g -std=c++20 -O2
 
 # 文件单独
 TARGET := main
