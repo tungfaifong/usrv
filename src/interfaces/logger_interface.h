@@ -38,12 +38,12 @@ public:
 	virtual ~Logger() = default;
 
 public:
-	void Start(intvl_t interval, size_t spsc_blk_num);
-	void Stop();
+	void Init(intvl_t interval, size_t spsc_blk_num);
+	void Del();
 	void Log(Level level, const std::string & log);
 
 private:
-	void _LogMainLoop();
+	void _LogLoop();
 	void _LogUpdate(intvl_t interval);
 	void _RealLog(Level level, const char * log, uint16_t size);
 
@@ -55,14 +55,14 @@ private:
 	char _log_buffer[MAX_LOG_SIZE];
 };
 
-inline void start(intvl_t interval, size_t spsc_blk_num)
+inline void init(intvl_t interval, size_t spsc_blk_num)
 {
-	Logger::Instance()->Start(interval, spsc_blk_num);
+	Logger::Instance()->Init(interval, spsc_blk_num);
 }
 
-inline void stop()
+inline void del()
 {
-	Logger::Instance()->Stop();
+	Logger::Instance()->Del();
 }
 
 inline void trace(const std::string & log)

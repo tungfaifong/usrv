@@ -63,7 +63,7 @@ void Client::Update(intvl_t interval)
 
 bool run_tcp_client(IP host, PORT port, int client_num)
 {
-	logger::start(10, 1024 * 1024);
+	logger::init(10, 1024 * 1024);
 
 	UnitManager::Instance()->Init(UNITKEY::COUNT, UNITKEYSTR);
 	UnitManager::Instance()->Register(UNITKEY::SERVER, std::move(std::make_shared<ServerUnit>(1024, 1024, 1024 * 1024)));
@@ -77,7 +77,7 @@ bool run_tcp_client(IP host, PORT port, int client_num)
 
 	UnitManager::Instance()->Run(10);
 
-	logger::stop();
+	logger::del();
 
 	return true;
 }

@@ -56,7 +56,7 @@ bool run_tcp_server(PORT port)
 {
 	signal(SIGUSR1, SignalHandler);
 
-	logger::start(10, 1024 * 1024);
+	logger::init(10, 1024 * 1024);
 
 	UnitManager::Instance()->Init(UNITKEY::COUNT, UNITKEYSTR);
 	UnitManager::Instance()->Register(UNITKEY::SERVER, std::move(std::make_shared<ServerUnit>(1024, 1024, 1024 * 1024)));
@@ -68,7 +68,7 @@ bool run_tcp_server(PORT port)
 
 	UnitManager::Instance()->Run(10);
 
-	logger::stop();
+	logger::del();
 
 	return true;
 }

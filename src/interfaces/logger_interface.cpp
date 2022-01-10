@@ -11,16 +11,16 @@ NAMESPACE_OPEN
 namespace logger
 {
 
-void Logger::Start(intvl_t interval, size_t spsc_blk_num)
+void Logger::Init(intvl_t interval, size_t spsc_blk_num)
 {
 	_interval = interval;
 	_log_queue = std::make_shared<SpscQueue>(spsc_blk_num);
 	_log_thread = std::thread([self = shared_from_this()](){
-		self->_LogMainLoop();
+		self->_LogLoop();
 	});
 }
 
-void Logger::Stop()
+void Logger::Del()
 {
 	_exit = true;
 	_log_thread.join();
@@ -35,7 +35,7 @@ void Logger::Log(Level level, const std::string & log)
 	_log_queue->Push(log.c_str(), header);
 }
 
-void Logger::_LogMainLoop()
+void Logger::_LogLoop()
 {
 	auto start = SysNow();
 	auto now = start;
@@ -76,7 +76,7 @@ void Logger::_LogUpdate(intvl_t interval)
 void Logger::_RealLog(Level level, const char * log, uint16_t size)
 {
 	static std::string prefix[Level::COUNT] = {"[trace]", "[debug]", "[info]", "[warn]", "[error]", "[critical]"};
-	std::cout << prefix[level] << " " << log << std::endl;
+	std::cout << prefix[level] << " " << std::string(log, size) << std::endl;
 }
 
 }
