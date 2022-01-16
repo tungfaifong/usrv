@@ -23,11 +23,14 @@ NAMESPACE_OPEN
 
 using intvl_t = uint64_t;
 
-using NETID = uint32_t;
+using NETID = size_t;
 using IP = std::string;
 using PORT = uint16_t;
 
+using TIMERID = size_t;
+
 static constexpr NETID INVALID_NET_ID = -1;
+static constexpr TIMERID INVALID_TIMER_ID = -1;
 
 static constexpr uint16_t MESSAGE_HEAD_SIZE = sizeof(uint16_t);
 static constexpr uint16_t MESSAGE_BODY_SIZE = UINT16_MAX;

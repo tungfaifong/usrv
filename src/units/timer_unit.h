@@ -8,6 +8,8 @@
 #include <time.h>
 
 #include "unit.h"
+#include "util/object_list.hpp"
+#include "util/object_pool.hpp"
 #include "util/time.h"
 
 NAMESPACE_OPEN
@@ -15,15 +17,23 @@ NAMESPACE_OPEN
 class Timer
 {
 public:
-	Timer(sys_clock_t time, std::function<void()> && callback):_time(time), _callback(std::move(callback)) {}
-	virtual ~Timer() {}
+	Timer() = default;
+	virtual ~Timer() = default;
 
 	bool operator > (const Timer & t) const
 	{
 		return _time > t._time;
 	}
 
+public:
+	void Start(TIMERID id, sys_clock_t time, std::function<void()> && callback);
+	void Stop();
+
+	bool Call();
+
 private:
+	TIMERID _id;
+	bool _callable;
 	sys_clock_t _time;
 	std::function<void()> _callback;
 	friend class TimerUnit;
@@ -42,10 +52,18 @@ public:
 	virtual void Release() override final;
 
 public:
-	void CreateTimer(intvl_t time, std::function<void()> && callback);
+	TIMERID CreateTimer(intvl_t time, std::function<void()> && callback);
+	bool CallTimer(TIMERID id);
+	bool RemoveTimer(TIMERID id);
 
 private:
-	std::priority_queue<Timer, std::vector<Timer>, std::greater<Timer>> _timers;
+	void _RemoveTimer(std::shared_ptr<Timer> && timer);
+
+private:
+	std::function<bool(std::shared_ptr<Timer>, std::shared_ptr<Timer>)> _cmp = [](std::shared_ptr<Timer> left, std::shared_ptr<Timer> right) { return *left > *right; };
+	std::priority_queue<std::shared_ptr<Timer>, std::vector<std::shared_ptr<Timer>>, decltype(_cmp)> _timers;
+	ObjectPool<Timer> _timer_pool;
+	ObjectList<Timer> _timer_list;
 };
 
 NAMESPACE_CLOSE
