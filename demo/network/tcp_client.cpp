@@ -46,7 +46,7 @@ void Client::Update(intvl_t interval)
 	uint16_t size;
 	while(server->Recv(recv_net_id, rec_buff, size))
 	{
-		logger::info(fmt::format("recv: net_id:{} data:{}", recv_net_id, std::string(buff, size)));
+		logger::info("recv: net_id:{} data:{}", recv_net_id, std::string(buff, size));
 	}
 }
 

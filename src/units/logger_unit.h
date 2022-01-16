@@ -5,6 +5,8 @@
 
 #include <thread>
 
+#include "fmt/core.h"
+
 #include "components/loop.hpp"
 #include "unit.h"
 #include "util/common.h"
@@ -38,7 +40,7 @@ public:
 	virtual void Release() override final;
 
 public:
-	void Log(Level level, const std::string & log);
+	template<typename ... Args> void Log(Level level, fmt::format_string<Args...> fmt, Args && ... args);
 
 private:
 	void _LogStart();
@@ -51,6 +53,18 @@ private:
 	SpscQueue _log_queue;
 	char _log_buffer[MAX_LOG_SIZE];
 };
+
+template<typename ... Args> void LoggerUnit::Log(Level level, fmt::format_string<Args...> fmt, Args && ... args)
+{
+	std::string log = fmt::format(fmt, std::forward<Args>(args)...);
+
+	SpscQueue::Header header;
+	header.size = log.size();
+	header.data16 = level;
+	header.data32 = 0;
+
+	_log_queue.Push(log.c_str(), header);
+}
 
 NAMESPACE_CLOSE
 

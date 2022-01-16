@@ -47,15 +47,6 @@ void LoggerUnit::Release()
 	_LogUpdate(0);
 }
 
-void LoggerUnit::Log(Level level, const std::string & log)
-{
-	SpscQueue::Header header;
-	header.size = log.size();
-	header.data16 = level;
-	header.data32 = 0;
-	_log_queue.Push(log.c_str(), header);
-}
-
 void LoggerUnit::_LogStart()
 {
 	_loop.Run();

@@ -82,10 +82,10 @@ bool UnitManager::_Start()
 	{
 		if (!unit.second->Start())
 		{
-			logger::error(fmt::format("UnitManager::_Start {} fail", unit.first));
+			logger::error("UnitManager::_Start {} fail", unit.first);
 			return false;
 		}
-		logger::info(fmt::format("UnitManager::_Start {} success", unit.first));
+		logger::info("UnitManager::_Start {} success", unit.first);
 	}
 	logger::info("UnitManager::_Start All units success");
 	return true;
@@ -104,7 +104,7 @@ void UnitManager::_Stop()
 	for (auto & unit : _units)
 	{
 		unit.second->Stop();
-		logger::info(fmt::format("UnitManager::_Stop {} success", unit.first));
+		logger::info("UnitManager::_Stop {} success", unit.first);
 	}
 	logger::info("UnitManager::_Stop All units success");
 }
