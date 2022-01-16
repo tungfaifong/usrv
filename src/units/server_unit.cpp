@@ -80,10 +80,7 @@ bool ServerUnit::Send(NETID net_id, const char * data, uint16_t size)
 	header.data16 = net_id;
 	header.data32 = 0;
 
-	if(!_send_queue.TryPush(data, header))
-	{
-		return false;
-	}
+	_send_queue.Push(data, header);
 
 	return true;
 }
@@ -208,7 +205,11 @@ void Peer::Start(NETID net_id, asio::ip::tcp::socket && socket, const std::share
 
 void Peer::Stop()
 {
-	_socket->close();
+	if(_socket->is_open())
+	{
+		_socket->shutdown(asio::ip::tcp::socket::shutdown_both);
+		_socket->close();
+	}
 	_server->_IoDelPeer(_net_id);
 	_net_id = INVALID_NET_ID;
 	_socket = nullptr;
@@ -244,10 +245,7 @@ asio::awaitable<void> Peer::_Recv()
 			header.data16 = _net_id;
 			header.data32 = 0;
 
-			if(!_server->_recv_queue.TryPush(_recv_buffer, header))
-			{
-
-			}
+			_server->_recv_queue.Push(_recv_buffer, header);
 		}
 	}
 	catch (const std::exception & e)
