@@ -5,21 +5,35 @@
 #include <chrono>
 #include <string>
 
-#include "interfaces/logger_interface.h"
+#include "interfaces/logger_interface.hpp"
 #include "unit.h"
 #include "util/time.h"
 
 NAMESPACE_OPEN
 
-void UnitManager::Init(size_t unit_num, const std::string * unit_keys)
+void UnitManager::Init(intvl_t interval)
 {
-	_units.resize(unit_num);
-	_unit_keys = unit_keys;
+	_loop.Init(interval, [self = shared_from_this()](intvl_t interval){
+		self->_Update(interval);
+	});
+
+	for(auto & unit : _units)
+	{
+		unit.second->Init();
+	}
 }
 
-bool UnitManager::Register(size_t key, std::shared_ptr<Unit> && unit)
+void UnitManager::Release()
 {
-	if(key >= _units.size())
+	for(auto & unit : _units)
+	{
+		unit.second->Release();
+	}
+}
+
+bool UnitManager::Register(const char * key, std::shared_ptr<Unit> && unit)
+{
+	if(_units.find(key) != _units.end())
 	{
 		return false;
 	}
@@ -31,52 +45,49 @@ bool UnitManager::Register(size_t key, std::shared_ptr<Unit> && unit)
 	return true;
 }
 
-std::shared_ptr<Unit> UnitManager::Get(size_t key)
+std::shared_ptr<Unit> UnitManager::Get(const char * key)
 {
-	if(key >= _units.size())
+	if(_units.find(key) == _units.end())
 	{
 		return nullptr;
 	}
 	return _units[key];
 }
 
-void UnitManager::Run(intvl_t interval)
+void UnitManager::Run()
 {
-	_interval = interval;
-
 	if (!_Start())
 	{
 		return;
 	}
 
-	logger::info("UnitManager::Run start All units success");
-
-	_MainLoop();
+	_loop.Run();
 
 	_Stop();
 }
 
 void UnitManager::SetExit(bool exit)
 {
-	_exit = exit;
+	_loop.SetExit(exit);
 }
 
 intvl_t UnitManager::Interval()
 {
-	return _interval;
+	return _loop.Interval();
 }
 
 bool UnitManager::_Start()
 {
-	for (size_t i = 0; i < _units.size(); ++i)
+	for (auto & unit : _units)
 	{
-		if (!_units[i]->Start())
+		if (!unit.second->Start())
 		{
-			logger::error(fmt::format("UnitManager::_Start {} fail", _unit_keys[i]));
+			logger::error(fmt::format("UnitManager::_Start {} fail", unit.first));
 			return false;
 		}
-		logger::info(fmt::format("UnitManager::_Start {} success", _unit_keys[i]));
+		logger::info(fmt::format("UnitManager::_Start {} success", unit.first));
 	}
+	logger::info("UnitManager::_Start All units success");
 	return true;
 }
 
@@ -84,38 +95,18 @@ void UnitManager::_Update(intvl_t interval)
 {
 	for (auto & unit : _units)
 	{
-		unit->Update(interval);
+		unit.second->Update(interval);
 	}
 }
 
 void UnitManager::_Stop()
 {
-	for (size_t i = 0; i < _units.size(); ++i)
+	for (auto & unit : _units)
 	{
-		_units[i]->Stop();
-		logger::info(fmt::format("UnitManager::_Stop {} success", _unit_keys[i]));
+		unit.second->Stop();
+		logger::info(fmt::format("UnitManager::_Stop {} success", unit.first));
 	}
-}
-
-void UnitManager::_MainLoop()
-{
-	auto start = SysNow();
-	auto now = start;
-	auto interval = Ns2Ms(now - start);
-	while (!_exit)
-	{
-		now = SysNow();
-		interval = Ns2Ms(now - start);
-		if (interval >= _interval)
-		{
-			start = now;
-			_Update(interval);
-		}
-		else
-		{
-			usleep((_interval - interval) * (CLOCKS_PER_SEC / SEC2MILLISEC));
-		}
-	}
+	logger::info("UnitManager::_Stop All units success");
 }
 
 NAMESPACE_CLOSE

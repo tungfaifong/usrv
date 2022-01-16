@@ -3,9 +3,10 @@
 #ifndef USRV_UNIT_MANAGER_H
 #define USRV_UNIT_MANAGER_H
 
+#include <map>
 #include <memory>
-#include <vector>
 
+#include "components/loop.hpp"
 #include "util/singleton.hpp"
 
 NAMESPACE_OPEN
@@ -19,10 +20,12 @@ public:
 	~UnitManager() = default;
 
 public:
-	void Init(size_t unit_num, const std::string * unit_key);
-	bool Register(size_t key, std::shared_ptr<Unit> && unit);
-	std::shared_ptr<Unit> Get(size_t key);
-	void Run(intvl_t interval);
+	void Init(intvl_t interval);
+	void Release();
+	
+	bool Register(const char * key, std::shared_ptr<Unit> && unit);
+	std::shared_ptr<Unit> Get(const char * key);
+	void Run();
 	void SetExit(bool exit);
 	intvl_t Interval();
 
@@ -30,13 +33,10 @@ private:
 	bool _Start();
 	void _Update(intvl_t interval);
 	void _Stop();
-	void _MainLoop();
 
 private:
-	bool _exit = false;
-	intvl_t _interval;
-	const std::string * _unit_keys;
-	std::vector<std::shared_ptr<Unit>> _units;
+	Loop _loop;
+	std::map<const char *, std::shared_ptr<Unit>> _units;
 };
 
 NAMESPACE_CLOSE

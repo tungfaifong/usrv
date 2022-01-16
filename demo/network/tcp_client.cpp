@@ -1,23 +1,10 @@
 // Copyright (c) 2019-2020 TungFai Fong 
 
-#include "interfaces/logger_interface.h"
+#include "interfaces/logger_interface.hpp"
 #include "unit_manager.h"
 #include "units/server_unit.h"
 
 using namespace usrv;
-
-enum UNITKEY
-{
-	SERVER = 0,
-	GAME,
-	COUNT,
-};
-
-const std::string UNITKEYSTR[UNITKEY::COUNT] = 
-{
-	"SERVER",
-	"GAME"
-};
 
 class Client : public Unit
 {
@@ -25,9 +12,11 @@ public:
 	Client() = default;
 	~Client() = default;
 
+	virtual bool Init() { return true; }
 	virtual bool Start();
 	virtual void Update(intvl_t interval);
 	virtual void Stop() { };
+	virtual void Release() { };
 
 	NETID _server_net_id = INVALID_NET_ID;
 	IP _host;
@@ -36,7 +25,7 @@ public:
 
 bool Client::Start()
 {
-	auto server = std::dynamic_pointer_cast<ServerUnit>(UnitManager::Instance()->Get(UNITKEY::SERVER));
+	auto server = std::dynamic_pointer_cast<ServerUnit>(UnitManager::Instance()->Get("SERVER"));
 	_server_net_id = server->Connect(_host, _port);
 	if(_server_net_id == INVALID_NET_ID)
 	{
@@ -48,7 +37,7 @@ bool Client::Start()
 
 void Client::Update(intvl_t interval)
 {
-	auto server = std::dynamic_pointer_cast<ServerUnit>(UnitManager::Instance()->Get(UNITKEY::SERVER));
+	auto server = std::dynamic_pointer_cast<ServerUnit>(UnitManager::Instance()->Get("SERVER"));
 	const char * buff = "echo check 1 check 2;";
 	server->Send(_server_net_id, buff, strlen(buff));
 
@@ -63,21 +52,21 @@ void Client::Update(intvl_t interval)
 
 bool run_tcp_client(IP host, PORT port, int client_num)
 {
-	logger::init(10, 1024 * 1024);
+	UnitManager::Instance()->Register("LOGGER", std::move(std::make_shared<LoggerUnit>(1 Mi)));
+	UnitManager::Instance()->Register("SERVER", std::move(std::make_shared<ServerUnit>(1 Ki, 1 Ki, 4 Mi)));
+	UnitManager::Instance()->Register("CLIENT", std::move(std::make_shared<Client>()));
 
-	UnitManager::Instance()->Init(UNITKEY::COUNT, UNITKEYSTR);
-	UnitManager::Instance()->Register(UNITKEY::SERVER, std::move(std::make_shared<ServerUnit>(1024, 1024, 1024 * 1024)));
-	UnitManager::Instance()->Register(UNITKEY::GAME, std::move(std::make_shared<Client>()));
-
-	auto server = std::dynamic_pointer_cast<ServerUnit>(UnitManager::Instance()->Get(UNITKEY::SERVER));
-	auto game = std::dynamic_pointer_cast<Client>(UnitManager::Instance()->Get(UNITKEY::GAME));
+	auto server = std::dynamic_pointer_cast<ServerUnit>(UnitManager::Instance()->Get("SERVER"));
+	auto game = std::dynamic_pointer_cast<Client>(UnitManager::Instance()->Get("CLIENT"));
 
 	game->_host= host;
 	game->_port = port;
 
-	UnitManager::Instance()->Run(10);
+	UnitManager::Instance()->Init(10);
 
-	logger::del();
+	UnitManager::Instance()->Run();
+
+	UnitManager::Instance()->Release();
 
 	return true;
 }

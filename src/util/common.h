@@ -1,7 +1,7 @@
 // Copyright (c) 2022 TungFai Fong <iam@tungfaifong.com>
 
-#ifndef COMMON_H
-#define COMMON_H
+#ifndef USRV_COMMON_H
+#define USRV_COMMON_H
 
 #include <stdint.h>
 #include <string>
@@ -18,6 +18,9 @@ NAMESPACE_NAME \
 
 NAMESPACE_OPEN
 
+#define Ki * 1024
+#define Mi Ki Ki
+
 using intvl_t = uint64_t;
 
 using NETID = uint32_t;
@@ -31,4 +34,4 @@ static constexpr uint16_t MESSAGE_BODY_SIZE = UINT16_MAX;
 
 NAMESPACE_CLOSE
 
-#endif // COMMON_H
+#endif // USRV_COMMON_H

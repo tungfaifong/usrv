@@ -1,7 +1,7 @@
 // Copyright (c) 2022 TungFai Fong <iam@tungfaifong.com>
 
-#ifndef OBJECT_POOL_HPP
-#define OBJECT_POOL_HPP
+#ifndef USRV_OBJECT_POOL_HPP
+#define USRV_OBJECT_POOL_HPP
 
 #include <vector>
 
@@ -57,4 +57,4 @@ public:
 
 NAMESPACE_CLOSE
 
-#endif // OBJECT_POOL_HPP
+#endif // USRV_OBJECT_POOL_HPP

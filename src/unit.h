@@ -17,9 +17,11 @@ public:
 	Unit() = default;
 	virtual ~Unit() = default;
 
+	virtual bool Init() = 0;
 	virtual bool Start() = 0;
 	virtual void Update(intvl_t interval) = 0;
 	virtual void Stop() = 0;
+	virtual void Release() = 0;
 	virtual void OnRegister(const std::shared_ptr<UnitManager> & mgr) { _mgr = mgr; }
 
 protected:

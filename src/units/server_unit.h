@@ -25,9 +25,11 @@ public:
 	ServerUnit(size_t pp_alloc_num, size_t ps_alloc_num, size_t spsc_blk_num);
 	virtual ~ServerUnit() = default;
 
+	virtual bool Init() override final;
 	virtual bool Start() override final;
 	virtual void Update(intvl_t interval) override final;
 	virtual void Stop() override final;
+	virtual void Release() override final;
 
 public:
 	void Listen(PORT port);

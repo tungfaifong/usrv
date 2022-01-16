@@ -1,7 +1,7 @@
 // Copyright (c) 2022 TungFai Fong <iam@tungfaifong.com>
 
-#ifndef OBJECT_LIST_HPP
-#define OBJECT_LIST_HPP
+#ifndef USRV_OBJECT_LIST_HPP
+#define USRV_OBJECT_LIST_HPP
 
 #include <vector>
 
@@ -29,13 +29,14 @@ public:
 
 	size_t Insert(std::shared_ptr<T> && obj)
 	{
-		if (_size == _objects.size())
+		auto id = _indexs[_head];
+		_objects[id] = std::move(obj);
+
+		_head = (_head + 1) % _objects.size();
+		if (_head == _tail)
 		{
 			_Allocate();
 		}
-
-		auto id = _indexs[_size++];
-		_objects[id] = std::move(obj);
 
 		return id;
 	}
@@ -47,23 +48,28 @@ public:
 			return;
 		}
 
-		_objects[id] = nullptr;
-		_indexs[--_size] = id;
+ 		_objects[id] = nullptr;
+		_indexs[_tail] = id;
+		_tail = (_tail + 1) % _objects.size();
 	}
 
 	void Clear()
 	{
-		_size = 0;
 		_objects.clear();
+		_head = 0;
+		_tail = 0;
 		_indexs.clear();
 	}
 
 private:
 	void _Allocate()
 	{
-		_objects.resize(_objects.size() + _alloc_num);
-		_indexs.resize(_indexs.size() + _alloc_num);
-		for (size_t i = _size; i < _alloc_num; ++i)
+		auto size = _objects.size();
+		_objects.resize(size + _alloc_num);
+		_head = size;
+		_tail = 0;
+		_indexs.resize(size + _alloc_num);
+		for (size_t i = size; i < size + _alloc_num; ++i)
 		{
 			_indexs[i] = i;
 		}
@@ -71,11 +77,12 @@ private:
 
 private:
 	size_t _alloc_num;
-	size_t _size = 0;
 	std::vector<std::shared_ptr<T>> _objects;
+	size_t _head = 0;
+	size_t _tail = 0;
 	std::vector<size_t> _indexs;
 };
 
 NAMESPACE_CLOSE
 
-#endif // OBJECT_LIST_HPP
+#endif // USRV_OBJECT_LIST_HPP

@@ -14,10 +14,14 @@ ServerUnit::ServerUnit(size_t pp_alloc_num, size_t ps_alloc_num, size_t spsc_blk
 {
 }
 
-bool ServerUnit::Start()
+bool ServerUnit::Init()
 {
 	_io_interval = _mgr->Interval();
+	return true;
+}
 
+bool ServerUnit::Start()
+{
 	_io_thread = std::thread([self = shared_from_this()](){
 		self->_IoStart();
 	});
@@ -33,6 +37,11 @@ void ServerUnit::Stop()
 {
 	_io_context.stop();
 	_io_thread.join();
+}
+
+void ServerUnit::Release()
+{
+	
 }
 
 void ServerUnit::Listen(PORT port)

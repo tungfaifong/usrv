@@ -1,7 +1,7 @@
 // Copyright (c) 2022 TungFai Fong <iam@tungfaifong.com>
 
-#ifndef TIME_H
-#define TIME_H
+#ifndef USRV_TIME_H
+#define USRV_TIME_H
 
 #include <chrono>
 
@@ -83,4 +83,4 @@ int NextMonthInterval(int mday, int hour, int minute, int second);
 
 NAMESPACE_CLOSE
 
-#endif // TIME_H
+#endif // USRV_TIME_H

@@ -1,6 +1,7 @@
 // Copyright (c) 2022 TungFai Fong <iam@tungfaifong.com>
 
 #include "unit_manager.h"
+#include "units/logger_unit.h"
 #include "units/timer_unit.h"
 #include "util/time.h"
 
@@ -31,10 +32,10 @@ public:
 
 int run_timer()
 {
-	UnitManager::Instance()->Init(UNITKEY::COUNT, UNITKEYSTR);
-	UnitManager::Instance()->Register(UNITKEY::TIMER, std::move(std::make_shared<TimerUnit>()));
+	UnitManager::Instance()->Register("LOGGER", std::move(std::make_shared<LoggerUnit>(1 Mi)));
+	UnitManager::Instance()->Register("TIMER", std::move(std::make_shared<TimerUnit>()));
 
-	static auto timer_manager = std::dynamic_pointer_cast<TimerUnit>(UnitManager::Instance()->Get(UNITKEY::TIMER));
+	static auto timer_manager = std::dynamic_pointer_cast<TimerUnit>(UnitManager::Instance()->Get("TIMER"));
 
 	CallObj a;
 	timer_manager->CreateTimer(3 * SEC2MILLISEC, call1);
@@ -42,7 +43,9 @@ int run_timer()
 	timer_manager->CreateTimer(5 * SEC2MILLISEC, CallObj::call3);
 	timer_manager->CreateTimer(6 * SEC2MILLISEC, std::bind(&CallObj::call4, &a));
 
-	UnitManager::Instance()->Run(10);
+	UnitManager::Instance()->Init(10);
+	UnitManager::Instance()->Run();
+	UnitManager::Instance()->Release();
 
 	return 0;
 }

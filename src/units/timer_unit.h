@@ -35,9 +35,11 @@ public:
 	TimerUnit() = default;
 	virtual ~TimerUnit() = default;
 
+	virtual bool Init() override final;
 	virtual bool Start() override final;
 	virtual void Update(intvl_t interval) override final;
 	virtual void Stop() override final;
+	virtual void Release() override final;
 
 public:
 	void CreateTimer(intvl_t time, std::function<void()> && callback);

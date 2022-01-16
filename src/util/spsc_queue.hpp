@@ -1,8 +1,8 @@
 // Copyright (c) 2022 TungFai Fong <iam@tungfaifong.com>
 // A single producer single consumer lock-free queue based on ring buffer.
 
-#ifndef SPSC_QUEUE_HPP
-#define SPSC_QUEUE_HPP
+#ifndef USRV_SPSC_QUEUE_HPP
+#define USRV_SPSC_QUEUE_HPP
 
 #include <atomic>
 #include <cassert>
@@ -75,7 +75,6 @@ public:
 			_empty_block = _block_num - write_idx + _read_idx.load(std::memory_order_acquire);
 			if (_empty_block < need_block)
 			{
-				// full return
 				return false;
 			}
 		}
@@ -95,11 +94,13 @@ public:
 	bool TryPop(char * data, Header & header)
 	{
 		const auto read_idx = _read_idx.load(std::memory_order_relaxed);
-		const auto write_idx = _write_idx.load(std::memory_order_acquire);
-		if (read_idx == write_idx)
+		if (_used_block == 0)
 		{
-			// empty return
-			return false;
+			_used_block = _write_idx.load(std::memory_order_acquire) - read_idx;
+			if(_used_block == 0)
+			{
+				return false;
+			}
 		}
 
 		const auto offset = (read_idx & (_block_num - 1)) * BLOCK_SIZE;
@@ -108,7 +109,10 @@ public:
 		memcpy(data, _buffer + offset + HEADER_SIZE, len);
 		memcpy(data + len, _buffer, header.size - len);
 
-		_read_idx.store(read_idx + (header.size + HEADER_SIZE - 1) / BLOCK_SIZE + 1, std::memory_order_release);
+		const auto read_block = (header.size + HEADER_SIZE - 1) / BLOCK_SIZE + 1;
+		_used_block -= read_block;
+
+		_read_idx.store(read_idx + read_block, std::memory_order_release);
 		return true;
 	}
 
@@ -119,14 +123,15 @@ public:
 
 private:
 	alignas(CACHELINE_SIZE) size_t _block_num;
-	alignas(CACHELINE_SIZE) size_t _bytes;
-	alignas(CACHELINE_SIZE) char * _buffer;
+	size_t _bytes;
+	char * _buffer;
 	alignas(CACHELINE_SIZE) std::atomic<size_t> _write_idx = {0};
-	alignas(CACHELINE_SIZE) size_t _padding = 0;
+	size_t _empty_block = 0;
 	alignas(CACHELINE_SIZE) std::atomic<size_t> _read_idx = {0};
-	alignas(CACHELINE_SIZE) size_t _empty_block = 0;
+	size_t _used_block = 0;
+	char _padding[CACHELINE_SIZE - sizeof(std::atomic<size_t>) - sizeof(size_t)];
 };
 
 NAMESPACE_CLOSE
 
-#endif // SPSC_QUEUE_HPP
+#endif // USRV_SPSC_QUEUE_HPP

@@ -4,6 +4,11 @@
 
 NAMESPACE_OPEN
 
+bool TimerUnit::Init()
+{
+	return true;
+}
+
 bool TimerUnit::Start()
 {
 	return true;
@@ -26,6 +31,11 @@ void TimerUnit::Update(intvl_t interval)
 }
 
 void TimerUnit::Stop()
+{
+
+}
+
+void TimerUnit::Release()
 {
 
 }

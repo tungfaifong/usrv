@@ -1,7 +1,7 @@
 // Copyright (c) 2022 TungFai Fong <iam@tungfaifong.com>
 
-#ifndef NONCOPYABLE_HPP
-#define NONCOPYABLE_HPP
+#ifndef USRV_NONCOPYABLE_HPP
+#define USRV_NONCOPYABLE_HPP
 
 #include "common.h"
 
@@ -20,4 +20,4 @@ protected:
 
 NAMESPACE_CLOSE
 
-#endif // NONCOPYABLE_HPP
+#endif // USRV_NONCOPYABLE_HPP

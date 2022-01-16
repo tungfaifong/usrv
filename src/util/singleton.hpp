@@ -1,7 +1,7 @@
 // Copyright (c) 2022 TungFai Fong <iam@tungfaifong.com>
 
-#ifndef SINGLETON_HPP
-#define SINGLETON_HPP
+#ifndef USRV_SINGLETON_HPP
+#define USRV_SINGLETON_HPP
 
 #include <memory>
 
@@ -31,4 +31,4 @@ std::shared_ptr<T> Singleton<T>::_instance = std::make_shared<T>();
 
 NAMESPACE_CLOSE
 
-#endif // SINGLETON_HPP
+#endif // USRV_SINGLETON_HPP

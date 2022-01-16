@@ -1,7 +1,7 @@
 // Copyright (c) 2022 TungFai Fong <iam@tungfaifong.com>
 
-#ifndef NONMOVABLE_HPP
-#define NONMOVABLE_HPP
+#ifndef USRV_NONMOVABLE_HPP
+#define USRV_NONMOVABLE_HPP
 
 #include "common.h"
 
@@ -20,4 +20,4 @@ protected:
 
 NAMESPACE_CLOSE
 
-#endif // NONMOVABLE_HPP
+#endif // USRV_NONMOVABLE_HPP

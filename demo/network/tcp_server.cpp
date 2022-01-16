@@ -1,23 +1,12 @@
 // Copyright (c) 2019-2020 TungFai Fong 
 
-#include "interfaces/logger_interface.h"
+#include "interfaces/logger_interface.hpp"
 #include "unit_manager.h"
+#include "units/logger_unit.h"
 #include "units/server_unit.h"
+#include "util/common.h"
 
 using namespace usrv;
-
-enum UNITKEY
-{
-	SERVER = 0,
-	GAME,
-	COUNT,
-};
-
-const std::string UNITKEYSTR[UNITKEY::COUNT] = 
-{
-	"SERVER",
-	"GAME"
-};
 
 class Game : public Unit
 {
@@ -25,9 +14,11 @@ public:
 	Game() = default;
 	~Game() = default;
 
+	virtual bool Init() { return true; }
 	virtual bool Start() { return true; };
 	virtual void Update(intvl_t interval);
 	virtual void Stop() { };
+	virtual void Release() { };
 };
 
 void SignalHandler(int signum)
@@ -40,7 +31,7 @@ void SignalHandler(int signum)
 
 void Game::Update(intvl_t interval)
 {
-	auto server = std::dynamic_pointer_cast<ServerUnit>(UnitManager::Instance()->Get(UNITKEY::SERVER));
+	auto server = std::dynamic_pointer_cast<ServerUnit>(UnitManager::Instance()->Get("SERVER"));
 
 	NETID net_id;
 	char buff[UINT16_MAX];
@@ -56,19 +47,18 @@ bool run_tcp_server(PORT port)
 {
 	signal(SIGUSR1, SignalHandler);
 
-	logger::init(10, 1024 * 1024);
+	UnitManager::Instance()->Register("LOGGER", std::move(std::make_shared<LoggerUnit>(1 Mi)));
+	UnitManager::Instance()->Register("SERVER", std::move(std::make_shared<ServerUnit>(1 Ki, 1 Ki, 4 Mi)));
+	UnitManager::Instance()->Register("GAME", std::move(std::make_shared<Game>()));
 
-	UnitManager::Instance()->Init(UNITKEY::COUNT, UNITKEYSTR);
-	UnitManager::Instance()->Register(UNITKEY::SERVER, std::move(std::make_shared<ServerUnit>(1024, 1024, 1024 * 1024)));
-	UnitManager::Instance()->Register(UNITKEY::GAME, std::move(std::make_shared<Game>()));
-
-	auto server = std::dynamic_pointer_cast<ServerUnit>(UnitManager::Instance()->Get(UNITKEY::SERVER));
-
+	auto server = std::dynamic_pointer_cast<ServerUnit>(UnitManager::Instance()->Get("SERVER"));
 	server->Listen(port);
 
-	UnitManager::Instance()->Run(10);
+	UnitManager::Instance()->Init(10);
 
-	logger::del();
+	UnitManager::Instance()->Run();
+
+	UnitManager::Instance()->Release();
 
 	return true;
 }
