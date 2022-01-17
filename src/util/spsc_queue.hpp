@@ -13,11 +13,11 @@
 
 NAMESPACE_OPEN
 
-#define MIN(x, y) x < y ? x : y
-
 class SpscQueue
 {
 public:
+#define MIN(x, y) x < y ? x : y
+
 #ifdef __cpp_lib_hardware_interference_size
 	static constexpr size_t CACHELINE_SIZE = std::hardware_destructive_interference_size;
 	static constexpr size_t BLOCK_SIZE = CACHELINE_SIZE;
