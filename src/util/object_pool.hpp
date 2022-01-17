@@ -25,19 +25,21 @@ public:
 
 	std::shared_ptr<T> Get()
 	{
-		if(_objects.empty())
+		auto obj = std::move(_objects[_size]);
+
+		++_size;
+		if(_size == _objects.size())
 		{
 			_Allocate();
 		}
 
-		auto obj = std::move(_objects.back());
-		_objects.pop_back();
 		return obj;
 	}
 
 	void Put(std::shared_ptr<T> && obj)
 	{
-		_objects.emplace_back(std::move(obj));
+		--_size;
+		_objects[_size] = std::move(obj);
 	}
 
 private:
@@ -53,6 +55,7 @@ private:
 public:
 	size_t _alloc_num;
 	std::vector<std::shared_ptr<T>> _objects;
+	size_t _size = 0;
 };
 
 NAMESPACE_CLOSE

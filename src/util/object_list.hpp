@@ -41,6 +41,11 @@ public:
 		return id;
 	}
 
+	size_t Insert(T && obj)
+	{
+		return Insert(std::make_shared<T>(obj));
+	}
+
 	void Erase(size_t id)
 	{
 		if (id >= _objects.size() || _objects[id] == nullptr)
