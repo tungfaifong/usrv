@@ -64,12 +64,7 @@ NETID ServerUnit::Connect(const IP & ip, PORT port)
 void ServerUnit::Disconnect(NETID net_id)
 {
 	asio::post(_io_context, [self = shared_from_this(), &net_id](){
-		auto peer = self->_peers[net_id];
-		if(!peer)
-		{
-			return;
-		}
-		peer->Stop();
+		self->_IoDisconnect(net_id);
 	});
 }
 
@@ -122,13 +117,12 @@ asio::awaitable<void> ServerUnit::_IoUpdate()
 					continue;
 				}
 
-				auto peer = _peers[header.data16];
-				if(!peer)
+				if(!_peers.Find(header.data16))
 				{
 					continue;
 				}
 
-				co_await peer->Send(_send_buffer, header.size);
+				co_await _peers[header.data16]->Send(_send_buffer, header.size);
 			}
 
 			_timer.expires_after(ms_t(_io_interval));
@@ -176,6 +170,16 @@ asio::awaitable<void> ServerUnit::_IoConnect(const IP & ip, PORT port, std::prom
 	}
 }
 
+void ServerUnit::_IoDisconnect(NETID net_id)
+{
+	if(!_peers.Find(net_id))
+	{
+		return;
+	}
+	_peers[net_id]->Stop();
+	_IoDelPeer(net_id);
+}
+
 NETID ServerUnit::_IoAddPeer(asio::ip::tcp::socket && socket)
 {
 	auto net_id = _peers.Insert(std::move(_peer_pool.Get()));
@@ -185,12 +189,7 @@ NETID ServerUnit::_IoAddPeer(asio::ip::tcp::socket && socket)
 
 void ServerUnit::_IoDelPeer(NETID net_id)
 {
-	auto peer = _peers[net_id];
-	if(!peer)
-	{
-		return;
-	}
-	_peer_pool.Put(std::move(peer));
+	_peer_pool.Put(std::move(_peers[net_id]));
 	_peers.Erase(net_id);
 }
 
@@ -210,7 +209,6 @@ void Peer::Stop()
 		_socket->shutdown(asio::ip::tcp::socket::shutdown_both);
 		_socket->close();
 	}
-	_server->_IoDelPeer(_net_id);
 	_net_id = INVALID_NET_ID;
 	_socket = nullptr;
 	_server = nullptr;
@@ -226,7 +224,7 @@ asio::awaitable<void> Peer::Send(const char * data, uint16_t size)
 	}
 	catch (const std::exception & e)
 	{
-		Stop();
+		_server->_IoDisconnect(_net_id);
 	}
 }
 
@@ -250,7 +248,7 @@ asio::awaitable<void> Peer::_Recv()
 	}
 	catch (const std::exception & e)
 	{
-		Stop();
+		_server->_IoDisconnect(_net_id);
 	}
 }
 

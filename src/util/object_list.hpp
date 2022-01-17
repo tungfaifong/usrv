@@ -18,13 +18,19 @@ public:
 		_Allocate();
 	}
 
-	const std::shared_ptr<T> operator[](size_t id)
+	const std::shared_ptr<T> & operator[](size_t id)
 	{
-		if (id >= _objects.size())
-		{
-			return nullptr;
-		}
 		return _objects[id];
+	}
+
+	bool Find(size_t id)
+	{
+		if (id >= _objects.size() || !_objects[id])
+		{
+			return false;
+		}
+
+		return true;
 	}
 
 	size_t Insert(std::shared_ptr<T> && obj)

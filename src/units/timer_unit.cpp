@@ -5,35 +5,31 @@
 NAMESPACE_OPEN
 
 // Timer
-void Timer::Start(TIMERID id, sys_clock_t time, std::function<void()> && callback)
+void Timer::Start(sys_clock_t time, std::function<void()> && callback)
 {
-	_id = id;
-	_callable = true;
 	_time = time;
 	_callback = std::move(callback);
 }
 
 void Timer::Stop()
 {
-	_id = INVALID_TIMER_ID;
-	_callable = false;
 	_callback = nullptr;
 }
 
 bool Timer::Call()
 {
-	if(!_callable)
-	{
-		return false;
-	}
-
 	_callback();
-
 	return true;
 }
 
 
 // TimerUnit
+TimerUnit::TimerUnit(size_t tp_alloc_num, size_t ts_alloc_num): _timer_pool(tp_alloc_num),
+	_timers([](std::shared_ptr<Timer>& left, std::shared_ptr<Timer>& right) { return *left < *right; }, ts_alloc_num)
+{
+
+}
+
 bool TimerUnit::Init()
 {
 	return true;
@@ -47,9 +43,9 @@ bool TimerUnit::Start()
 void TimerUnit::Update(intvl_t interval)
 {
 	auto now = SysNow();
-	while(!_timers.empty())
+	while(!_timers.Empty())
 	{
-		auto timer = _timers.top();
+		auto timer = _timers.Pop();
 		if(timer->_time > now)
 		{
 			break;
@@ -58,8 +54,6 @@ void TimerUnit::Update(intvl_t interval)
 		timer->Call();
 
 		_RemoveTimer(std::move(timer));
-
-		_timers.pop();
 	}
 }
 
@@ -75,25 +69,22 @@ void TimerUnit::Release()
 
 TIMERID TimerUnit::CreateTimer(intvl_t time, std::function<void()> && callback)
 {
-	auto timer_id = _timer_list.Insert(std::move(_timer_pool.Get()));
-	auto timer = _timer_list[timer_id];
-	timer->Start(timer_id, SysNow() + ms_t(time), std::move(callback));
-	_timers.emplace(timer);
-	return timer_id;
+	auto timer = std::move(_timer_pool.Get());
+	timer->Start(SysNow() + ms_t(time), std::move(callback));
+	auto id = _timers.Emplace(std::move(timer));
+	return id;
 }
 
 bool TimerUnit::CallTimer(TIMERID id)
 {
-	auto timer = _timer_list[id];
-	if(!timer)
+	if(!_timers.FindByKey(id))
 	{
 		return false;
 	}
 
-	if(!timer->Call())
-	{
-		return false;
-	}
+	auto timer = _timers.PopByKey(id);
+
+	timer->Call();
 
 	_RemoveTimer(std::move(timer));
 
@@ -102,11 +93,12 @@ bool TimerUnit::CallTimer(TIMERID id)
 
 bool TimerUnit::RemoveTimer(TIMERID id)
 {
-	auto timer = _timer_list[id];
-	if(!timer)
+	if(!_timers.FindByKey(id))
 	{
 		return false;
 	}
+
+	auto timer = _timers.PopByKey(id);
 
 	_RemoveTimer(std::move(timer));
 
@@ -116,7 +108,6 @@ bool TimerUnit::RemoveTimer(TIMERID id)
 void TimerUnit::_RemoveTimer(std::shared_ptr<Timer> && timer)
 {
 	timer->Stop();
-	_timer_list.Erase(timer->_id);
 	_timer_pool.Put(std::move(timer));
 }
 

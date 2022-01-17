@@ -43,6 +43,7 @@ private:
 	asio::awaitable<void> _IoUpdate();
 	asio::awaitable<void> _IoListen(PORT port);
 	asio::awaitable<void> _IoConnect(const IP & ip, PORT port, std::promise<NETID> & promise_net_id);
+	void _IoDisconnect(NETID net_id);
 	NETID _IoAddPeer(asio::ip::tcp::socket && socket);
 	void _IoDelPeer(NETID net_id);
 

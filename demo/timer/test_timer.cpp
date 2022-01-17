@@ -33,7 +33,7 @@ public:
 int run_timer()
 {
 	UnitManager::Instance()->Register("LOGGER", std::move(std::make_shared<LoggerUnit>(1 Mi)));
-	UnitManager::Instance()->Register("TIMER", std::move(std::make_shared<TimerUnit>()));
+	UnitManager::Instance()->Register("TIMER", std::move(std::make_shared<TimerUnit>(1 Ki, 1 Ki)));
 
 	static auto timer_manager = std::dynamic_pointer_cast<TimerUnit>(UnitManager::Instance()->Get("TIMER"));
 

@@ -36,7 +36,7 @@ public:
 		return obj;
 	}
 
-	void Put(std::shared_ptr<T> && obj)
+	void Put(const std::shared_ptr<T> && obj)
 	{
 		--_size;
 		_objects[_size] = std::move(obj);

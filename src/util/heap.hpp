@@ -6,10 +6,11 @@
 #include <vector>
 
 #include "common.h"
+#include "object_list.hpp"
 
 NAMESPACE_OPEN
 
-template<typename T, typename CMP = std::less<T>>
+template<typename T>
 class Heap
 {
 public:
@@ -17,68 +18,105 @@ public:
 #define CHILD(idx) 2 * idx + 1
 #define SIBLINGR(idx) idx + 1
 
-	Heap() = default;
+	struct HeapNode
+	{
+		size_t key;
+		T value;
+	};
+
+	Heap(std::function<bool(T &, T &)> cmp, size_t kp_alloc_num): _cmp(cmp), _key2pos(kp_alloc_num) {}
 	~Heap() = default;
 
 	size_t Emplace(T && obj)
 	{
-		_heap.emplace_back(obj);
-		_ShiftUp(_heap.size() - 1);
-		return 0;
+		auto pos = _heap.size();
+		auto key = _key2pos.Insert(std::move(pos));
+		HeapNode node;
+		node.key = key;
+		node.value = std::move(obj);
+		_heap.emplace_back(node);
+		_ShiftUp(pos);
+		return key;
 	}
 
 	T Pop(size_t pos = 0)
 	{
 		std::swap(_heap[pos], _heap[_heap.size() - 1]);
-		auto obj = std::move(_heap.back());
+		auto obj = std::move(_heap.back().value);
 		_heap.pop_back();
 		_ShiftDown(pos);
 		return obj;
 	}
 
-private:
-	bool _ShiftUp(size_t index)
+	T PopByKey(size_t key)
 	{
-		size_t current = index;
+		auto pos = _key2pos[key];
+		return Pop(*pos);
+	}
+
+	bool FindByKey(size_t key)
+	{
+		return _key2pos.Find(key);
+	}
+
+	bool Empty()
+	{
+		return _heap.empty();
+	}
+
+private:
+	bool _ShiftUp(size_t pos)
+	{
+		size_t current = pos;
 		size_t parent = PARENT(current);
-		auto tmp = _heap[index];
-		while (current > 0 && CMP()(tmp, _heap[parent]))
+		auto tmp = _heap[pos];
+		while (current > 0 && _cmp(tmp.value, _heap[parent].value))
 		{
 			_heap[current] = _heap[parent];
+			auto p_key = _key2pos[_heap[parent].key];
+			*p_key = current;
 			current = parent;
 			parent = PARENT(parent);
 		}
 		_heap[current] = tmp;
+		auto c_key = _key2pos[tmp.key];
+		*c_key = current;
 		return true;
 	}
 
-	bool _ShiftDown(const size_t index)
+	bool _ShiftDown(const size_t pos)
 	{
-		size_t current = index;
+		size_t current = pos;
 		size_t child = CHILD(current);
-		auto tmp = _heap[index];
+		auto tmp = _heap[pos];
 		while(child < _heap.size())
 		{
-			if(SIBLINGR(child) < _heap.size() && CMP()(_heap[SIBLINGR(child)], _heap[child]))
+			if(SIBLINGR(child) < _heap.size() && _cmp(_heap[SIBLINGR(child)].value, _heap[child].value))
 			{
 				child = SIBLINGR(child);
 			}
 
-			if(CMP()(tmp, _heap[child]))
+			if(_cmp(tmp.value, _heap[child].value))
 			{
 				break;
 			}
 
 			_heap[current] = _heap[child];
+			auto c_key = _key2pos[_heap[child].key];
+			*c_key = current;
 			current = child;
 			child = CHILD(child);
 		}
 		_heap[current] = tmp;
+		auto c_key = _key2pos[tmp.key];
+		*c_key = current;
 		return true;
 	}
 
 private:
-	std::vector<T> _heap;
+	std::function<bool(T &, T &)> _cmp;
+	std::vector<HeapNode> _heap;
+	ObjectList<size_t> _key2pos;
 };
 
 NAMESPACE_CLOSE
