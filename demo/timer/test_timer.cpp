@@ -1,5 +1,6 @@
 // Copyright (c) 2022 TungFai Fong <iam@tungfaifong.com>
 
+#include "interfaces/timer_interface.hpp"
 #include "unit_manager.h"
 #include "units/logger_unit.h"
 #include "units/timer_unit.h"
@@ -35,13 +36,13 @@ int run_timer()
 	UnitManager::Instance()->Register("LOGGER", std::move(std::make_shared<LoggerUnit>(1 Mi)));
 	UnitManager::Instance()->Register("TIMER", std::move(std::make_shared<TimerUnit>(1 Ki, 1 Ki)));
 
-	static auto timer_manager = std::dynamic_pointer_cast<TimerUnit>(UnitManager::Instance()->Get("TIMER"));
-
 	CallObj a;
-	timer_manager->CreateTimer(3 * SEC2MILLISEC, call1);
-	timer_manager->CreateTimer(4 * SEC2MILLISEC, [](){ printf("call timeout 2\n"); });
-	timer_manager->CreateTimer(5 * SEC2MILLISEC, CallObj::call3);
-	timer_manager->CreateTimer(6 * SEC2MILLISEC, std::bind(&CallObj::call4, &a));
+	timer::CreateTimer(3 * SEC2MILLISEC, call1);
+	auto key2 = timer::CreateTimer(4 * SEC2MILLISEC, [](){ printf("call timeout 2\n"); });
+	auto key3 = timer::CreateTimer(5 * SEC2MILLISEC, CallObj::call3);
+	timer::CreateTimer(6 * SEC2MILLISEC, std::bind(&CallObj::call4, &a));
+	timer::CallTimer(key3);
+	timer::RemoveTimer(key2);
 
 	UnitManager::Instance()->Init(10);
 	UnitManager::Instance()->Run();
