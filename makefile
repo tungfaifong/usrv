@@ -14,10 +14,12 @@ PATH_3RDPARTY = ./3rdparty
 
 INC_ASIO = -I$(PATH_3RDPARTY)/asio-1.20.0
 INC_FMT = -I$(PATH_3RDPARTY)/fmt-8.1.0/include
-INC_ALL := -I./src $(INC_ASIO) $(INC_FMT)
+INC_LUA = -I$(PATH_3RDPARTY)/lua-5.4.3/include
+INC_ALL := -I./src $(INC_ASIO) $(INC_FMT) $(INC_LUA)
 
 LIB_FMT = -L$(PATH_3RDPARTY)/fmt-8.1.0/lib -lfmt
-LIB_ALL := $(LIB_FMT)
+LIB_LUA = -L$(PATH_3RDPARTY)/lua-5.4.3/lib -llua
+LIB_ALL := $(LIB_FMT) $(LIB_LUA)
 
 LINK_FLAGS := $(LIB_ALL) -lpthread
 
