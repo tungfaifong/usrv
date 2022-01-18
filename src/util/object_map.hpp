@@ -1,7 +1,7 @@
 // Copyright (c) 2022 TungFai Fong <iam@tungfaifong.com>
 
-#ifndef USRV_OBJECT_LIST_HPP
-#define USRV_OBJECT_LIST_HPP
+#ifndef USRV_OBJECT_MAP_HPP
+#define USRV_OBJECT_MAP_HPP
 
 #include <vector>
 
@@ -10,10 +10,10 @@
 NAMESPACE_OPEN
 
 template<typename T>
-class ObjectList
+class ObjectMap
 {
 public:
-	ObjectList(size_t alloc_num) : _alloc_num(alloc_num)
+	ObjectMap(size_t alloc_num) : _alloc_num(alloc_num)
 	{
 		_Allocate();
 	}
@@ -96,4 +96,4 @@ private:
 
 NAMESPACE_CLOSE
 
-#endif // USRV_OBJECT_LIST_HPP
+#endif // USRV_OBJECT_MAP_HPP

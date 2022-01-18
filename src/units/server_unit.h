@@ -9,7 +9,7 @@
 
 #include "unit.h"
 #include "util/common.h"
-#include "util/object_list.hpp"
+#include "util/object_map.hpp"
 #include "util/object_pool.hpp"
 #include "util/spsc_queue.hpp"
 
@@ -56,7 +56,7 @@ private:
 	intvl_t _io_interval = 0;
 
 	ObjectPool<Peer> _peer_pool;
-	ObjectList<Peer> _peers;
+	ObjectMap<Peer> _peers;
 
 	SpscQueue _send_queue;
 	SpscQueue _recv_queue;

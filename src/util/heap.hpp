@@ -6,7 +6,7 @@
 #include <vector>
 
 #include "common.h"
-#include "object_list.hpp"
+#include "object_map.hpp"
 
 NAMESPACE_OPEN
 
@@ -135,7 +135,7 @@ private:
 	size_t _alloc_num;
 	std::vector<HeapNode> _heap;
 	size_t _size = 0;
-	ObjectList<size_t> _key2pos;
+	ObjectMap<size_t> _key2pos;
 };
 
 NAMESPACE_CLOSE
