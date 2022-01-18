@@ -9,7 +9,6 @@
 
 #include "components/loop.hpp"
 #include "unit.h"
-#include "util/common.h"
 #include "util/spsc_queue.hpp"
 
 NAMESPACE_OPEN

@@ -19,8 +19,14 @@ void UnitManager::Init(intvl_t interval)
 
 	for(auto & unit : _units)
 	{
-		unit.second->Init();
+		if(!unit.second->Init())
+		{
+			logger::error("UnitManager::Init {} fail", unit.first);
+			return;
+		}
+		logger::info("UnitManager::Init {} success", unit.first);
 	}
+	logger::info("UnitManager::Init All units success");
 }
 
 void UnitManager::Release()
