@@ -60,7 +60,6 @@ private:
 private:
 	ObjectPool<Timer> _timer_pool;
 	Heap<std::shared_ptr<Timer>> _timers;
-
 };
 
 NAMESPACE_CLOSE

@@ -25,7 +25,7 @@ bool Timer::Call()
 
 // TimerUnit
 TimerUnit::TimerUnit(size_t tp_alloc_num, size_t ts_alloc_num): _timer_pool(tp_alloc_num),
-	_timers([](std::shared_ptr<Timer>& left, std::shared_ptr<Timer>& right) { return *left < *right; }, ts_alloc_num)
+	_timers([](std::shared_ptr<Timer> & left, std::shared_ptr<Timer> & right){ return *left < *right; }, ts_alloc_num)
 {
 
 }
@@ -45,11 +45,12 @@ void TimerUnit::Update(intvl_t interval)
 	auto now = SysNow();
 	while(!_timers.Empty())
 	{
-		auto timer = _timers.Pop();
-		if(timer->_time > now)
+		if(_timers.Top()->_time > now)
 		{
 			break;
 		}
+
+		auto timer = std::move(_timers.Pop());
 
 		timer->Call();
 
@@ -82,7 +83,7 @@ bool TimerUnit::CallTimer(TIMERID id)
 		return false;
 	}
 
-	auto timer = _timers.PopByKey(id);
+	auto timer = std::move(_timers.PopByKey(id));
 
 	timer->Call();
 
@@ -98,7 +99,7 @@ bool TimerUnit::RemoveTimer(TIMERID id)
 		return false;
 	}
 
-	auto timer = _timers.PopByKey(id);
+	auto timer = std::move(_timers.PopByKey(id));
 
 	_RemoveTimer(std::move(timer));
 

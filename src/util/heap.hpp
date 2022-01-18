@@ -10,7 +10,7 @@
 
 NAMESPACE_OPEN
 
-template<typename T, typename CMP>
+template<typename T>
 class Heap
 {
 public:
@@ -18,13 +18,15 @@ public:
 #define CHILD(idx) 2 * idx + 1
 #define SIBLINGR(idx) idx + 1
 
+	using CmpFunc = std::function<bool(T&, T&)>;
+
 	struct HeapNode
 	{
 		size_t key;
 		T value;
 	};
 
-	Heap(CMP cmp, size_t alloc_num, size_t kp_alloc_num): _cmp(cmp), _alloc_num(alloc_num), _key2pos(kp_alloc_num)
+	Heap(CmpFunc cmp, size_t alloc_num): _cmp(cmp), _alloc_num(alloc_num), _key2pos(alloc_num)
 	{
 		_Allocate();
 	}
@@ -57,6 +59,11 @@ public:
 		return obj;
 	}
 
+	const T & Top()
+	{
+		return _heap[0].value;
+	}
+
 	T PopByKey(size_t key)
 	{
 		auto pos = _key2pos[key];
@@ -70,7 +77,7 @@ public:
 
 	bool Empty()
 	{
-		return _heap.empty();
+		return _size == 0;
 	}
 
 private:
@@ -124,7 +131,7 @@ private:
 	}
 
 private:
-	CMP _cmp;
+	CmpFunc _cmp;
 	size_t _alloc_num;
 	std::vector<HeapNode> _heap;
 	size_t _size = 0;
