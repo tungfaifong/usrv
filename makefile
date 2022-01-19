@@ -15,7 +15,7 @@ PATH_3RDPARTY = ./3rdparty
 INC_ASIO = -I$(PATH_3RDPARTY)/asio-1.20.0
 INC_FMT = -I$(PATH_3RDPARTY)/fmt-8.1.0/include
 INC_LUA = -I$(PATH_3RDPARTY)/lua-5.4.3/include
-INC_LUA_BRIDGE = -I$(PATH_3RDPARTY)/LuaBridge-2.6
+INC_LUA_BRIDGE = -I$(PATH_3RDPARTY)/LuaBridge-2.7
 INC_ALL := -I./src $(INC_ASIO) $(INC_FMT) $(INC_LUA) $(INC_LUA_BRIDGE)
 
 LIB_FMT = -L$(PATH_3RDPARTY)/fmt-8.1.0/lib -lfmt
