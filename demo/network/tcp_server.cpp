@@ -47,6 +47,7 @@ bool run_tcp_server(PORT port)
 {
 	signal(SIGUSR1, SignalHandler);
 
+	UnitManager::Instance()->Init(10);
 	UnitManager::Instance()->Register("LOGGER", std::move(std::make_shared<LoggerUnit>(1 Mi)));
 	UnitManager::Instance()->Register("SERVER", std::move(std::make_shared<ServerUnit>(1 Ki, 1 Ki, 4 Mi)));
 	UnitManager::Instance()->Register("GAME", std::move(std::make_shared<Game>()));
@@ -54,11 +55,7 @@ bool run_tcp_server(PORT port)
 	auto server = std::dynamic_pointer_cast<ServerUnit>(UnitManager::Instance()->Get("SERVER"));
 	server->Listen(port);
 
-	UnitManager::Instance()->Init(10);
-
 	UnitManager::Instance()->Run();
-
-	UnitManager::Instance()->Release();
 
 	return true;
 }

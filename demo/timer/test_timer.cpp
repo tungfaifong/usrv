@@ -33,6 +33,7 @@ public:
 
 int run_timer()
 {
+	UnitManager::Instance()->Init(10);
 	UnitManager::Instance()->Register("LOGGER", std::move(std::make_shared<LoggerUnit>(1 Mi)));
 	UnitManager::Instance()->Register("TIMER", std::move(std::make_shared<TimerUnit>(1 Ki, 1 Ki)));
 
@@ -44,9 +45,7 @@ int run_timer()
 	timer::CallTimer(key3);
 	timer::RemoveTimer(key2);
 
-	UnitManager::Instance()->Init(10);
 	UnitManager::Instance()->Run();
-	UnitManager::Instance()->Release();
 
 	return 0;
 }

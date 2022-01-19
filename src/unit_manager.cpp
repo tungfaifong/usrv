@@ -16,25 +16,6 @@ void UnitManager::Init(intvl_t interval)
 	_loop.Init(interval, [self = shared_from_this()](intvl_t interval){
 		self->_Update(interval);
 	});
-
-	for(auto & unit : _units)
-	{
-		if(!unit.second->Init())
-		{
-			logger::error("UnitManager::Init {} fail", unit.first);
-			return;
-		}
-		logger::info("UnitManager::Init {} success", unit.first);
-	}
-	logger::info("UnitManager::Init All units success");
-}
-
-void UnitManager::Release()
-{
-	for(auto & unit : _units)
-	{
-		unit.second->Release();
-	}
 }
 
 bool UnitManager::Register(const char * key, std::shared_ptr<Unit> && unit)
@@ -62,6 +43,11 @@ std::shared_ptr<Unit> UnitManager::Get(const char * key)
 
 void UnitManager::Run()
 {
+	if (!_Init())
+	{
+		return;
+	}
+
 	if (!_Start())
 	{
 		return;
@@ -70,6 +56,8 @@ void UnitManager::Run()
 	_loop.Run();
 
 	_Stop();
+
+	_Release();
 }
 
 void UnitManager::SetExit(bool exit)
@@ -80,6 +68,21 @@ void UnitManager::SetExit(bool exit)
 intvl_t UnitManager::Interval()
 {
 	return _loop.Interval();
+}
+
+bool UnitManager::_Init()
+{
+	for(auto & unit : _units)
+	{
+		if(!unit.second->Init())
+		{
+			logger::error("UnitManager::Init {} fail", unit.first);
+			return false;
+		}
+		logger::info("UnitManager::Init {} success", unit.first);
+	}
+	logger::info("UnitManager::Init All units success");
+	return true;
 }
 
 bool UnitManager::_Start()
@@ -113,6 +116,14 @@ void UnitManager::_Stop()
 		logger::info("UnitManager::_Stop {} success", unit.first);
 	}
 	logger::info("UnitManager::_Stop All units success");
+}
+
+void UnitManager::_Release()
+{
+	for(auto & unit : _units)
+	{
+		unit.second->Release();
+	}
 }
 
 NAMESPACE_CLOSE

@@ -10,27 +10,32 @@ NAMESPACE_OPEN
 
 LoggerUnit::LoggerUnit(size_t spsc_blk_num): _log_queue(spsc_blk_num)
 {
-	
+
 }
 
 LoggerUnit::~LoggerUnit()
 {
-	_LogUpdate(0);
+
+}
+
+void LoggerUnit::OnRegister(const std::shared_ptr<UnitManager> & mgr)
+{
+	Unit::OnRegister(mgr);
+	_loop.Init(_mgr->Interval(), [self = shared_from_this()](intvl_t interval){
+		self->_LogUpdate(interval);
+	});
+	_log_thread = std::thread([self = shared_from_this()](){
+		self->_LogStart();
+	});
 }
 
 bool LoggerUnit::Init()
 {
-	_loop.Init(_mgr->Interval(), [self = shared_from_this()](intvl_t interval){
-		self->_LogUpdate(interval);
-	});
 	return true;
 }
 
 bool LoggerUnit::Start()
 {
-	_log_thread = std::thread([self = shared_from_this()](){
-		self->_LogStart();
-	});
 	return true;
 }
 
@@ -47,7 +52,7 @@ void LoggerUnit::Stop()
 
 void LoggerUnit::Release()
 {
-
+	_LogUpdate(0);
 }
 
 void LoggerUnit::_LogStart()

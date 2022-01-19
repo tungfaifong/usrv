@@ -21,8 +21,6 @@ public:
 
 public:
 	void Init(intvl_t interval);
-	void Release();
-	
 	bool Register(const char * key, std::shared_ptr<Unit> && unit);
 	std::shared_ptr<Unit> Get(const char * key);
 	void Run();
@@ -30,9 +28,11 @@ public:
 	intvl_t Interval();
 
 private:
+	bool _Init();
 	bool _Start();
 	void _Update(intvl_t interval);
 	void _Stop();
+	void _Release();
 
 private:
 	Loop _loop;
