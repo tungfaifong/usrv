@@ -106,28 +106,39 @@ asio::awaitable<void> ServerUnit::_IoUpdate()
 {
 	try
 	{
+		auto start = StdNow();
+		auto now = start;
+		auto interval = Ns2Ms(now - start);
 		while(true)
 		{
-			while(!_send_queue.Empty())
+			now = StdNow();
+			interval = Ns2Ms(now - start);
+			if(interval >= _io_interval)
 			{
-				SpscQueue::Header header;
-
-				if(!_send_queue.TryPop(_send_buffer, header))
+				start = now;
+				while(!_send_queue.Empty())
 				{
-					continue;
-				}
+					SpscQueue::Header header;
 
-				if(!_peers.Find(header.data16))
-				{
-					continue;
-				}
+					if(!_send_queue.TryPop(_send_buffer, header))
+					{
+						continue;
+					}
 
-				co_await _peers[header.data16]->Send(_send_buffer, header.size);
+					if(!_peers.Find(header.data16))
+					{
+						continue;
+					}
+
+					co_await _peers[header.data16]->Send(_send_buffer, header.size);
+				}
 			}
-
-			_timer.expires_after(ms_t(_io_interval));
-			asio::error_code ec;
-			co_await _timer.async_wait(redirect_error(asio::use_awaitable, ec));
+			else
+			{
+				_timer.expires_after(ms_t(interval - _io_interval));
+				asio::error_code ec;
+				co_await _timer.async_wait(redirect_error(asio::use_awaitable, ec));
+			}
 		}
 	}
 	catch(const std::exception & e)
