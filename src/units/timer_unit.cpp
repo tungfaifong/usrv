@@ -5,7 +5,7 @@
 NAMESPACE_OPEN
 
 // Timer
-void Timer::Start(sys_clock_t time, std::function<void()> && callback)
+void Timer::Start(std_clock_t time, std::function<void()> && callback)
 {
 	_time = time;
 	_callback = std::move(callback);
@@ -42,7 +42,7 @@ bool TimerUnit::Start()
 
 void TimerUnit::Update(intvl_t interval)
 {
-	auto now = SysNow();
+	auto now = StdNow();
 	while(!_timers.Empty())
 	{
 		if(_timers.Top()->_time > now)
@@ -71,7 +71,7 @@ void TimerUnit::Release()
 TIMERID TimerUnit::CreateTimer(intvl_t time, std::function<void()> && callback)
 {
 	auto timer = std::move(_timer_pool.Get());
-	timer->Start(SysNow() + ms_t(time), std::move(callback));
+	timer->Start(StdNow() + ms_t(time), std::move(callback));
 	auto id = _timers.Emplace(std::move(timer));
 	return id;
 }

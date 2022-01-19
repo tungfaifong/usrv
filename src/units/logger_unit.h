@@ -30,7 +30,7 @@ public:
 	};
 
 	LoggerUnit(size_t spsc_blk_num);
-	virtual ~LoggerUnit() = default;
+	virtual ~LoggerUnit();
 
 	virtual bool Init() override final;
 	virtual bool Start() override final;

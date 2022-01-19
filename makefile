@@ -22,7 +22,7 @@ LIB_FMT = -L$(PATH_3RDPARTY)/fmt-8.1.0/lib -lfmt
 LIB_LUA = -L$(PATH_3RDPARTY)/lua-5.4.3/lib -llua
 LIB_ALL := $(LIB_FMT) $(LIB_LUA)
 
-LINK_FLAGS := $(LIB_ALL) -lpthread
+LINK_FLAGS := $(LIB_ALL) -lpthread -ldl
 
 DEFINE += 
 

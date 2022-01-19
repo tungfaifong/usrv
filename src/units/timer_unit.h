@@ -26,13 +26,13 @@ public:
 	}
 
 public:
-	void Start(sys_clock_t time, std::function<void()> && callback);
+	void Start(std_clock_t time, std::function<void()> && callback);
 	void Stop();
 
 	bool Call();
 
 private:
-	sys_clock_t _time;
+	std_clock_t _time;
 	std::function<void()> _callback;
 	friend class TimerUnit;
 };

@@ -4,6 +4,7 @@
 #define USRV_LOOP_HPP
 
 #include <functional>
+#include <thread>
 
 #include "util/common.h"
 #include "util/time.h"
@@ -27,12 +28,12 @@ public:
 
 	void Run()
 	{
-		auto start = SysNow();
+		auto start = StdNow();
 		auto now = start;
 		auto interval = Ns2Ms(now - start);
 		while (!_exit)
 		{
-			now = SysNow();
+			now = StdNow();
 			interval = Ns2Ms(now - start);
 			if (interval >= _interval)
 			{
@@ -41,7 +42,7 @@ public:
 			}
 			else
 			{
-				usleep((_interval - interval) * (CLOCKS_PER_SEC / SEC2MILLISEC));
+				std::this_thread::sleep_for(ms_t(_interval - interval));
 			}
 		}
 	}
