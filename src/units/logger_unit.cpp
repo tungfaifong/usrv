@@ -15,7 +15,7 @@ LoggerUnit::LoggerUnit(size_t spsc_blk_num): _log_queue(spsc_blk_num)
 
 LoggerUnit::~LoggerUnit()
 {
-
+	_LogUpdate(0);
 }
 
 void LoggerUnit::OnRegister(const std::shared_ptr<UnitManager> & mgr)
@@ -29,21 +29,6 @@ void LoggerUnit::OnRegister(const std::shared_ptr<UnitManager> & mgr)
 	});
 }
 
-bool LoggerUnit::Init()
-{
-	return true;
-}
-
-bool LoggerUnit::Start()
-{
-	return true;
-}
-
-void LoggerUnit::Update(intvl_t interval)
-{
-
-}
-
 void LoggerUnit::Stop()
 {
 	_loop.SetExit(true);
@@ -52,7 +37,8 @@ void LoggerUnit::Stop()
 
 void LoggerUnit::Release()
 {
-	_LogUpdate(0);
+	_loop.Release();
+	Unit::Release();
 }
 
 void LoggerUnit::_LogStart()

@@ -18,11 +18,11 @@ public:
 	virtual ~Unit() = default;
 
 	virtual void OnRegister(const std::shared_ptr<UnitManager> & mgr) { _mgr = mgr; }
-	virtual bool Init() = 0;
-	virtual bool Start() = 0;
-	virtual void Update(intvl_t interval) = 0;
-	virtual void Stop() = 0;
-	virtual void Release() = 0;
+	virtual bool Init() { return true; }
+	virtual bool Start() { return true; }
+	virtual void Update(intvl_t interval) {}
+	virtual void Stop() {}
+	virtual void Release() { _mgr = nullptr; }
 
 protected:
 	std::shared_ptr<UnitManager> _mgr;

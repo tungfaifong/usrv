@@ -30,16 +30,6 @@ TimerUnit::TimerUnit(size_t tp_alloc_num, size_t ts_alloc_num): _timer_pool(tp_a
 
 }
 
-bool TimerUnit::Init()
-{
-	return true;
-}
-
-bool TimerUnit::Start()
-{
-	return true;
-}
-
 void TimerUnit::Update(intvl_t interval)
 {
 	auto now = StdNow();
@@ -56,16 +46,6 @@ void TimerUnit::Update(intvl_t interval)
 
 		_RemoveTimer(std::move(timer));
 	}
-}
-
-void TimerUnit::Stop()
-{
-
-}
-
-void TimerUnit::Release()
-{
-
 }
 
 TIMERID TimerUnit::CreateTimer(intvl_t time, std::function<void()> && callback)

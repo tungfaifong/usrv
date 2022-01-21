@@ -32,10 +32,7 @@ public:
 	LoggerUnit(size_t spsc_blk_num);
 	virtual ~LoggerUnit();
 
-	virtual void OnRegister(const std::shared_ptr<UnitManager> & mgr);
-	virtual bool Init() override final;
-	virtual bool Start() override final;
-	virtual void Update(intvl_t interval) override final;
+	virtual void OnRegister(const std::shared_ptr<UnitManager> & mgr) override final;
 	virtual void Stop() override final;
 	virtual void Release() override final;
 

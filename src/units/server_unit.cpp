@@ -29,19 +29,10 @@ bool ServerUnit::Start()
 	return true;
 }
 
-void ServerUnit::Update(intvl_t interval)
-{
-}
-
 void ServerUnit::Stop()
 {
 	_io_context.stop();
 	_io_thread.join();
-}
-
-void ServerUnit::Release()
-{
-	
 }
 
 void ServerUnit::Listen(PORT port)

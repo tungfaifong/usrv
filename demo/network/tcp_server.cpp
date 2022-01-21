@@ -14,11 +14,7 @@ public:
 	Game() = default;
 	~Game() = default;
 
-	virtual bool Init() { return true; }
-	virtual bool Start() { return true; };
 	virtual void Update(intvl_t interval);
-	virtual void Stop() { };
-	virtual void Release() { };
 };
 
 void SignalHandler(int signum)

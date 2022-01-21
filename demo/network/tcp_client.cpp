@@ -12,11 +12,8 @@ public:
 	Client() = default;
 	~Client() = default;
 
-	virtual bool Init() { return true; }
 	virtual bool Start();
 	virtual void Update(intvl_t interval);
-	virtual void Stop() { };
-	virtual void Release() { };
 
 	NETID _server_net_id = INVALID_NET_ID;
 	IP _host;

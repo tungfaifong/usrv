@@ -58,6 +58,8 @@ void UnitManager::Run()
 	_Stop();
 
 	_Release();
+
+	_loop.Release();
 }
 
 void UnitManager::SetExit(bool exit)

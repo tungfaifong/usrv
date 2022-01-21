@@ -18,6 +18,8 @@ public:
 		_Allocate();
 	}
 
+	~ObjectMap() = default;
+
 	const std::shared_ptr<T> & operator[](size_t id)
 	{
 		return _objects[id];

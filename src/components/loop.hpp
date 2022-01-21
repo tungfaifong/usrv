@@ -47,6 +47,11 @@ public:
 		}
 	}
 
+	void Release()
+	{
+		_update_func = nullptr;
+	}
+
 	void SetExit(bool exit) { _exit = exit; }
 
 	intvl_t Interval() { return _interval; }

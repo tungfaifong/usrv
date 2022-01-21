@@ -18,10 +18,7 @@ public:
 		_Allocate();
 	}
 
-	~ObjectPool()
-	{
-		_objects.clear();
-	}
+	~ObjectPool() = default;
 
 	std::shared_ptr<T> Get()
 	{

@@ -53,6 +53,7 @@ void LuaUnit::Stop()
 void LuaUnit::Release()
 {
 	lua_close(_lua_state);
+	Unit::Release();
 }
 
 luabridge::LuaRef LuaUnit::GetGlobal(const char * name)
