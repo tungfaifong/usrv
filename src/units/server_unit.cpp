@@ -135,7 +135,7 @@ asio::awaitable<void> ServerUnit::_IoUpdate()
 			}
 			else
 			{
-				_timer.expires_after(ms_t(interval - _io_interval));
+				_timer.expires_after(ms_t(_io_interval - interval));
 				asio::error_code ec;
 				co_await _timer.async_wait(redirect_error(asio::use_awaitable, ec));
 			}
