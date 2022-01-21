@@ -60,7 +60,7 @@ private:
 	char _send_buffer[MESSAGE_BODY_SIZE];
 };
 
-class Peer : public std::enable_shared_from_this<Peer> 
+class Peer
 {
 public:
 	Peer() = default;
