@@ -48,12 +48,19 @@ inline void critical(fmt::format_string<Args...> fmt, Args && ... args)
 	std::dynamic_pointer_cast<LoggerUnit>(UnitManager::Instance()->Get("LOGGER"))->Log(LoggerUnit::Level::CRITICAL, fmt, std::forward<Args>(args)...);
 }
 
-inline void trace_l(const char * log) { trace("{}", log); }
-inline void debug_l(const char * log) { debug("{}", log); }
-inline void info_l(const char * log) { info("{}", log); }
-inline void warn_l(const char * log) { warn("{}", log); }
-inline void error_l(const char * log) { error("{}", log); }
-inline void critical_l(const char * log) { critical("{}", log); }
+inline void trace(const char * log) { trace("{}", log); }
+inline void debug(const char * log) { debug("{}", log); }
+inline void info(const char * log) { info("{}", log); }
+inline void warn(const char * log) { warn("{}", log); }
+inline void error(const char * log) { error("{}", log); }
+inline void critical(const char * log) { critical("{}", log); }
+
+inline void trace_l(const char * log) { trace(log); }
+inline void debug_l(const char * log) { debug(log); }
+inline void info_l(const char * log) { info(log); }
+inline void warn_l(const char * log) { warn(log); }
+inline void error_l(const char * log) { error(log); }
+inline void critical_l(const char * log) { critical(log); }
 
 inline void flush()
 {

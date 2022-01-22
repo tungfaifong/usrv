@@ -49,7 +49,7 @@ bool LuaUnit::Start()
 	}
 	catch(const std::exception & e)
 	{
-		logger::error_l(e.what());
+		logger::error(e.what());
 	}
 	return success;
 }
@@ -62,7 +62,7 @@ void LuaUnit::Update(intvl_t interval)
 	}
 	catch(const std::exception & e)
 	{
-		logger::error_l(e.what());
+		logger::error(e.what());
 	}
 }
 
@@ -74,7 +74,7 @@ void LuaUnit::Stop()
 	}
 	catch(const std::exception & e)
 	{
-		logger::error_l(e.what());
+		logger::error(e.what());
 	}
 }
 
@@ -102,7 +102,7 @@ void LuaUnit::OnRecvFunc(NETID net_id, char * data, uint16_t size)
 	}
 	catch(const std::exception & e)
 	{
-		logger::error_l(e.what());
+		logger::error(e.what());
 	}
 }
 

@@ -31,7 +31,7 @@ inline TIMERID CreateTimerL(intvl_t time, luabridge::LuaRef callback)
 		}
 		catch(const std::exception& e)
 		{
-			logger::error_l(e.what());
+			logger::error(e.what());
 		}
 	};
 	return CreateTimer(time, cb);
