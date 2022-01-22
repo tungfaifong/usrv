@@ -15,9 +15,9 @@ NAMESPACE_OPEN
 class LuaUnit : public Unit
 {
 public:
-	using LuaBindFunc = std::function<void(luabridge::Namespace)>;
+	using ExposeFunc = std::function<void(luabridge::Namespace)>;
 
-	LuaUnit(const std::string & path, LuaBindFunc bind_func = nullptr);
+	LuaUnit(const std::string & path, ExposeFunc func = nullptr);
 	virtual ~LuaUnit() = default;
 
 	virtual bool Init() override final;
@@ -35,6 +35,7 @@ public:
 
 private:
 	bool _InitFunc(luabridge::LuaRef & func, const char * func_name);
+	void _Expose();
 
 private:
 	std::string _file;
@@ -43,7 +44,7 @@ private:
 	luabridge::LuaRef _update;
 	luabridge::LuaRef _stop;
 	luabridge::LuaRef _on_recv;
-	LuaBindFunc _bind_func;
+	ExposeFunc _expose;
 };
 	
 NAMESPACE_CLOSE

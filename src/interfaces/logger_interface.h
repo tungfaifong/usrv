@@ -48,6 +48,13 @@ inline void critical(fmt::format_string<Args...> fmt, Args && ... args)
 	std::dynamic_pointer_cast<LoggerUnit>(UnitManager::Instance()->Get("LOGGER"))->Log(LoggerUnit::Level::CRITICAL, fmt, std::forward<Args>(args)...);
 }
 
+inline void trace_l(const std::string & log) { trace("{}", log); }
+inline void debug_l(const std::string & log) { debug("{}", log); }
+inline void info_l(const std::string & log) { info("{}", log); }
+inline void warn_l(const std::string & log) { warn("{}", log); }
+inline void error_l(const std::string & log) { error("{}", log); }
+inline void critical_l(const std::string & log) { critical("{}", log); }
+
 inline void flush()
 {
 	std::dynamic_pointer_cast<LoggerUnit>(UnitManager::Instance()->Get("LOGGER"))->Flush();

@@ -3,6 +3,9 @@
 #ifndef USRV_TIMER_INTERFACE_H
 #define USRV_TIMER_INTERFACE_H
 
+#include "lua.hpp"
+#include "LuaBridge/LuaBridge.h"
+
 #include "unit_manager.h"
 #include "units/timer_unit.h"
 #include "util/common.h"
@@ -15,6 +18,11 @@ namespace timer
 inline TIMERID CreateTimer(intvl_t time, std::function<void()> && callback)
 {
 	return std::dynamic_pointer_cast<TimerUnit>(UnitManager::Instance()->Get("TIMER"))->CreateTimer(time, std::move(callback));
+}
+
+inline TIMERID CreateTimerL(intvl_t time, luabridge::LuaRef callback)
+{
+	return CreateTimer(time, [callback](){ callback(); });
 }
 
 inline bool CallTimer(TIMERID id)

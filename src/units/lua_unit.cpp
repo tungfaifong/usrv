@@ -3,11 +3,13 @@
 #include "lua_unit.h"
 
 #include "interfaces/logger_interface.h"
+#include "interfaces/server_interface.h"
+#include "interfaces/timer_interface.h"
 
 NAMESPACE_OPEN
 
-LuaUnit::LuaUnit(const std::string & file, LuaBindFunc bind_func) : _file(file), _lua_state(luaL_newstate()),
-	_start(nullptr), _update(nullptr), _stop(nullptr), _on_recv(nullptr), _bind_func(bind_func)
+LuaUnit::LuaUnit(const std::string & file, ExposeFunc func) : _file(file), _lua_state(luaL_newstate()),
+	_start(nullptr), _update(nullptr), _stop(nullptr), _on_recv(nullptr), _expose(func)
 {
 	
 }
@@ -28,9 +30,11 @@ bool LuaUnit::Init()
 		return false;
 	}
 
-	if (_bind_func)
+	_Expose();
+
+	if (_expose)
 	{
-		_bind_func(GetGlobalNamespace());
+		_expose(GetGlobalNamespace());
 	}
 
 	return true;
@@ -81,6 +85,30 @@ bool LuaUnit::_InitFunc(luabridge::LuaRef & func, const char * func_name)
 		return false;
 	}
 	return true;
+}
+
+void LuaUnit::_Expose()
+{
+	GetGlobalNamespace()
+		.beginNamespace("logger")
+			.addFunction("trace", logger::trace_l)
+			.addFunction("debug", logger::debug_l)
+			.addFunction("info", logger::info_l)
+			.addFunction("warn", logger::warn_l)
+			.addFunction("error", logger::error_l)
+			.addFunction("critical", logger::critical_l)
+			.addFunction("flush", logger::flush)
+		.endNamespace()
+		.beginNamespace("server")
+			.addFunction("Connect", server::Connect)
+			.addFunction("Disconnect", server::Disconnect)
+			.addFunction("Send", server::Send)
+		.endNamespace()
+		.beginNamespace("timer")
+			.addFunction("CreateTimer", timer::CreateTimerL)
+			.addFunction("CallTimer", timer::CallTimer)
+			.addFunction("RemoveTimer", timer::RemoveTimer)
+		.endNamespace();
 }
 
 NAMESPACE_CLOSE

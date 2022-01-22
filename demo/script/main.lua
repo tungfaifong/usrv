@@ -1,18 +1,19 @@
 -- Copyright (c) 2019-2020 TungFai Fong 
 
 function Start()
-	print("call lua Start")
+	logger.trace("call lua Start")
+	local id = timer.CreateTimer(1000, function() print("call lua timer") end)
 	return true
 end
 
 function Update(interval)
-	print("call lua Update interval:" .. interval)
+	logger.trace("call lua Update interval:" .. interval)
 end
 
 function Stop()
-	print("call lua Stop")
+	logger.trace("call lua Stop")
 end
 
 function OnRecv(net_id, data)
-	print("OnRecv net_id:" .. net_id .. " data:" .. data)
+	logger.trace("OnRecv net_id:" .. net_id .. " data:" .. data)
 end
