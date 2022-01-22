@@ -1,7 +1,7 @@
 // Copyright (c) 2022 TungFai Fong <iam@tungfaifong.com>
 
-#ifndef USRV_SERVER_INTERFACE_HPP
-#define USRV_SERVER_INTERFACE_HPP
+#ifndef USRV_SERVER_INTERFACE_H
+#define USRV_SERVER_INTERFACE_H
 
 #include "unit_manager.h"
 #include "units/server_unit.h"
@@ -31,4 +31,4 @@ inline bool Send(NETID net_id, const char * data, uint16_t size)
 
 NAMESPACE_CLOSE
 
-#endif // USRV_SERVER_INTERFACE_HPP
+#endif // USRV_SERVER_INTERFACE_H

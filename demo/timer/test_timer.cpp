@@ -1,6 +1,6 @@
 // Copyright (c) 2022 TungFai Fong <iam@tungfaifong.com>
 
-#include "interfaces/timer_interface.hpp"
+#include "interfaces/timer_interface.h"
 #include "unit_manager.h"
 #include "units/logger_unit.h"
 #include "units/timer_unit.h"

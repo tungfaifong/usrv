@@ -2,7 +2,7 @@
 
 #include "server_unit.h"
 
-#include "interfaces/logger_interface.hpp"
+#include "interfaces/logger_interface.h"
 #include "unit_manager.h"
 #include "util/time.h"
 

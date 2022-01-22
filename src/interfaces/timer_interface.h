@@ -1,7 +1,7 @@
 // Copyright (c) 2022 TungFai Fong <iam@tungfaifong.com>
 
-#ifndef USRV_TIMER_INTERFACE_HPP
-#define USRV_TIMER_INTERFACE_HPP
+#ifndef USRV_TIMER_INTERFACE_H
+#define USRV_TIMER_INTERFACE_H
 
 #include "unit_manager.h"
 #include "units/timer_unit.h"
@@ -31,4 +31,4 @@ inline bool RemoveTimer(TIMERID id)
 
 NAMESPACE_CLOSE
 
-#endif // USRV_TIMER_INTERFACE_HPP
+#endif // USRV_TIMER_INTERFACE_H

@@ -2,7 +2,7 @@
 
 #include "lua_unit.h"
 
-#include "interfaces/logger_interface.hpp"
+#include "interfaces/logger_interface.h"
 
 NAMESPACE_OPEN
 

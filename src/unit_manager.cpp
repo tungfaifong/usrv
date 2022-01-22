@@ -5,7 +5,7 @@
 #include <chrono>
 #include <string>
 
-#include "interfaces/logger_interface.hpp"
+#include "interfaces/logger_interface.h"
 #include "unit.h"
 #include "util/time.h"
 
