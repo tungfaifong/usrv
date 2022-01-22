@@ -1,4 +1,4 @@
--- Copyright (c) 2019-2020 TungFai Fong 
+-- Copyright (c) 2022 TungFai Fong <iam@tungfaifong.com>
 
 function Start()
 	logger.trace("call lua Start")

@@ -42,17 +42,40 @@ bool LuaUnit::Init()
 
 bool LuaUnit::Start()
 {
-	return _start();
+	auto success = true;
+	try
+	{
+		success = _start();
+	}
+	catch(const std::exception & e)
+	{
+		logger::error_l(e.what());
+	}
+	return success;
 }
 
 void LuaUnit::Update(intvl_t interval)
 {
-	_update(interval);
+	try
+	{
+		_update(interval);
+	}
+	catch(const std::exception & e)
+	{
+		logger::error_l(e.what());
+	}
 }
 
 void LuaUnit::Stop()
 {
-	_stop();
+	try
+	{
+		_stop();
+	}
+	catch(const std::exception & e)
+	{
+		logger::error_l(e.what());
+	}
 }
 
 void LuaUnit::Release()
@@ -73,7 +96,14 @@ luabridge::Namespace LuaUnit::GetGlobalNamespace()
 
 void LuaUnit::OnRecvFunc(NETID net_id, char * data, uint16_t size)
 {
-	_on_recv(net_id, std::string(data, size));
+	try
+	{
+		_on_recv(net_id, std::string(data, size));
+	}
+	catch(const std::exception & e)
+	{
+		logger::error_l(e.what());
+	}
 }
 
 bool LuaUnit::_InitFunc(luabridge::LuaRef & func, const char * func_name)

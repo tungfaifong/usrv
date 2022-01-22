@@ -6,7 +6,9 @@
 #include "lua.hpp"
 #include "LuaBridge/LuaBridge.h"
 
+#include "interfaces/logger_interface.h"
 #include "unit_manager.h"
+#include "units/lua_unit.h"
 #include "units/timer_unit.h"
 #include "util/common.h"
 
@@ -22,7 +24,17 @@ inline TIMERID CreateTimer(intvl_t time, std::function<void()> && callback)
 
 inline TIMERID CreateTimerL(intvl_t time, luabridge::LuaRef callback)
 {
-	return CreateTimer(time, [callback](){ callback(); });
+	auto cb = [callback](){
+		try
+		{
+			callback(); 
+		}
+		catch(const std::exception& e)
+		{
+			logger::error_l(e.what());
+		}
+	};
+	return CreateTimer(time, cb);
 }
 
 inline bool CallTimer(TIMERID id)
