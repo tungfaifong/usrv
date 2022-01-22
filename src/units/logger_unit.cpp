@@ -64,7 +64,7 @@ void LoggerUnit::_LogUpdate(intvl_t interval)
 void LoggerUnit::_RealLog(Level level, const char * log, uint16_t size)
 {
 	static std::string prefix[Level::COUNT] = {"[trace]", "[debug]", "[info]", "[warn]", "[error]", "[critical]"};
-	std::cout << prefix[level] << " " << std::string(log, size) << std::endl;
+	std::cout << prefix[level] << " " << std::string_view(log, size) << std::endl;
 }
 
 NAMESPACE_CLOSE

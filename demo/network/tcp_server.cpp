@@ -34,7 +34,7 @@ void Game::Update(intvl_t interval)
 	uint16_t size;
 	while(server->Recv(net_id, buff, size))
 	{
-		logger::info("recv: net_id:{} data:{}", net_id, std::string(buff, size));
+		logger::info("recv: net_id:{} data:{}", net_id, std::string_view(buff, size));
 		server->Send(net_id, buff, size);
 	}
 }

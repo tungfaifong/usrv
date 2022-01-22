@@ -34,6 +34,7 @@ SOURCE_FILE := $(foreach d, $(SUB_DIR), $(wildcard $(d)/*.cpp))
 SOURCE_FILE += $(wildcard ./*.cpp)
 
 OBJ_FILE := $(addprefix $(BUILD_DIR)/, $(addsuffix .o, $(basename $(SOURCE_FILE))))
+DEP_FILE := $(patsubst %.o, %.d, $(OBJ_FILE))
 
 all: $(BUILD_DIR)/$(TARGET)
 
@@ -44,6 +45,10 @@ $(BUILD_DIR)/$(TARGET): $(OBJ_FILE)
 $(BUILD_DIR)/%.o: %.cpp
 	$(CXX) -c $(CXX_FLAGS) $(DEFINE) -MMD $(INC_ALL) $< -o $@
 	@echo compiled: $<
+
+ifneq ($(MAKECMDGOALS), clean)
+-include $(DEP_FILE)
+endif
 
 clean:
 	@rm -rf $(BUILD_DIR)
