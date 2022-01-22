@@ -31,6 +31,8 @@ public:
 	inline luabridge::LuaRef GetGlobal(const char * name);
 	inline luabridge::Namespace GetGlobalNamespace();
 
+	void OnRecvFunc(NETID net_id, char * data, uint16_t size);
+
 private:
 	bool _InitFunc(luabridge::LuaRef & func, const char * func_name);
 
@@ -40,6 +42,7 @@ private:
 	luabridge::LuaRef _start;
 	luabridge::LuaRef _update;
 	luabridge::LuaRef _stop;
+	luabridge::LuaRef _on_recv;
 	LuaBindFunc _bind_func;
 };
 	

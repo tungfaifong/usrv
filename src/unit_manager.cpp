@@ -45,11 +45,13 @@ void UnitManager::Run()
 {
 	if (!_Init())
 	{
+		logger::flush();
 		return;
 	}
 
 	if (!_Start())
 	{
+		logger::flush();
 		return;
 	}
 

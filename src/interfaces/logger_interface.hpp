@@ -48,6 +48,11 @@ inline void critical(fmt::format_string<Args...> fmt, Args && ... args)
 	std::dynamic_pointer_cast<LoggerUnit>(UnitManager::Instance()->Get("LOGGER"))->Log(LoggerUnit::Level::CRITICAL, fmt, std::forward<Args>(args)...);
 }
 
+inline void flush()
+{
+	std::dynamic_pointer_cast<LoggerUnit>(UnitManager::Instance()->Get("LOGGER"))->Flush();
+}
+
 }
 
 NAMESPACE_CLOSE

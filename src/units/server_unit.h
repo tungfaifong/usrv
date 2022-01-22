@@ -20,12 +20,14 @@ class ServerUnit : public Unit, public std::enable_shared_from_this<ServerUnit>
 {
 public:
 	static constexpr uint16_t CONNECT_WAIT_TIME = 3;
+	using OnRecvFunc = std::function<void(NETID, char *, uint16_t)>;
 
 	ServerUnit(size_t pp_alloc_num, size_t ps_alloc_num, size_t spsc_blk_num);
 	virtual ~ServerUnit() = default;
 
 	virtual bool Init() override final;
 	virtual bool Start() override final;
+	virtual void Update(intvl_t interval) override final;
 	virtual void Stop() override final;
 
 public:
@@ -33,9 +35,10 @@ public:
 	NETID Connect(const IP & ip, PORT port);
 	void Disconnect(NETID net_id);
 	bool Send(NETID net_id, const char * data, uint16_t size);
-	bool Recv(NETID & net_id, char * data, uint16_t & size);
+	void Recv(OnRecvFunc func);
 
 private:
+	bool _Recv(NETID & net_id, char * data, uint16_t & size);
 	void _IoStart();
 	asio::awaitable<void> _IoUpdate();
 	asio::awaitable<void> _IoListen(PORT port);
@@ -58,6 +61,9 @@ private:
 	SpscQueue _send_queue;
 	SpscQueue _recv_queue;
 	char _send_buffer[MESSAGE_BODY_SIZE];
+
+	OnRecvFunc _on_recv;
+	char _recv_buffer[MESSAGE_BODY_SIZE];
 };
 
 class Peer

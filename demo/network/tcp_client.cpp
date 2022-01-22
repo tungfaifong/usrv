@@ -37,14 +37,6 @@ void Client::Update(intvl_t interval)
 	auto server = std::dynamic_pointer_cast<ServerUnit>(UnitManager::Instance()->Get("SERVER"));
 	const char * buff = "echo check 1 check 2;";
 	server->Send(_server_net_id, buff, strlen(buff));
-
-	NETID recv_net_id = 1;
-	char rec_buff[UINT16_MAX];
-	uint16_t size;
-	while(server->Recv(recv_net_id, rec_buff, size))
-	{
-		logger::info("recv: net_id:{} data:{}", recv_net_id, std::string(buff, size));
-	}
 }
 
 bool run_tcp_client(IP host, PORT port, int client_num)
@@ -59,6 +51,10 @@ bool run_tcp_client(IP host, PORT port, int client_num)
 
 	game->_host= host;
 	game->_port = port;
+
+	server->Recv([](NETID net_id, char * data, uint16_t size) {
+		logger::info("recv: net_id:{} data:{}", net_id, std::string(data, size));
+	});
 
 	UnitManager::Instance()->Run();
 

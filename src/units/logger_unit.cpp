@@ -15,7 +15,7 @@ LoggerUnit::LoggerUnit(size_t spsc_blk_num): _log_queue(spsc_blk_num)
 
 LoggerUnit::~LoggerUnit()
 {
-	_LogUpdate(0);
+	Flush();
 }
 
 void LoggerUnit::OnRegister(const std::shared_ptr<UnitManager> & mgr)
@@ -39,6 +39,11 @@ void LoggerUnit::Release()
 {
 	_loop.Release();
 	Unit::Release();
+}
+
+void LoggerUnit::Flush()
+{
+	_LogUpdate(0);
 }
 
 void LoggerUnit::_LogStart()

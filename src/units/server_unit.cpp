@@ -2,6 +2,7 @@
 
 #include "server_unit.h"
 
+#include "interfaces/logger_interface.hpp"
 #include "unit_manager.h"
 #include "util/time.h"
 
@@ -22,11 +23,27 @@ bool ServerUnit::Init()
 
 bool ServerUnit::Start()
 {
+	if(!_on_recv)
+	{
+		logger::error("ServerUnit::Start error: no _on_recv, please call Recv(OnRecvFunc func)");
+		return false;
+	}
+
 	_io_thread = std::thread([self = shared_from_this()](){
 		self->_IoStart();
 	});
 
 	return true;
+}
+
+void ServerUnit::Update(intvl_t interval)
+{
+	NETID net_id;
+	uint16_t size;
+	while(_Recv(net_id, _recv_buffer, size))
+	{
+		_on_recv(net_id, _recv_buffer, size);
+	}
 }
 
 void ServerUnit::Stop()
@@ -71,7 +88,12 @@ bool ServerUnit::Send(NETID net_id, const char * data, uint16_t size)
 	return true;
 }
 
-bool ServerUnit::Recv(NETID & net_id, char * data, uint16_t & size)
+void ServerUnit::Recv(OnRecvFunc func)
+{
+	_on_recv = func;
+}
+
+bool ServerUnit::_Recv(NETID & net_id, char * data, uint16_t & size)
 {
 	SpscQueue::Header header;
 

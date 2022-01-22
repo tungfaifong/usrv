@@ -7,7 +7,7 @@
 NAMESPACE_OPEN
 
 LuaUnit::LuaUnit(const std::string & file, LuaBindFunc bind_func) : _file(file), _lua_state(luaL_newstate()),
-	_start(nullptr), _update(nullptr), _stop(nullptr), _bind_func(bind_func)
+	_start(nullptr), _update(nullptr), _stop(nullptr), _on_recv(nullptr), _bind_func(bind_func)
 {
 	
 }
@@ -22,8 +22,9 @@ bool LuaUnit::Init()
 		return false;
 	}
 
-	if (!_InitFunc(_start, "Start") || !_InitFunc(_update, "Update") || !_InitFunc(_stop, "Stop"))
+	if (!_InitFunc(_start, "Start") || !_InitFunc(_update, "Update") || !_InitFunc(_stop, "Stop") || !_InitFunc(_on_recv, "OnRecv"))
 	{
+		logger::error("LuaUnit::Init error: _InitFunc filed.");
 		return false;
 	}
 
@@ -64,6 +65,11 @@ luabridge::LuaRef LuaUnit::GetGlobal(const char * name)
 luabridge::Namespace LuaUnit::GetGlobalNamespace()
 {
 	return luabridge::getGlobalNamespace(_lua_state);
+}
+
+void LuaUnit::OnRecvFunc(NETID net_id, char * data, uint16_t size)
+{
+	_on_recv(net_id, data, size);
 }
 
 bool LuaUnit::_InitFunc(luabridge::LuaRef & func, const char * func_name)

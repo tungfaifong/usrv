@@ -20,10 +20,10 @@ public:
 	~Loop() = default;
 
 public:
-	void Init(intvl_t interval, UpdateFunc update_func)
+	void Init(intvl_t interval, UpdateFunc update)
 	{
 		_interval = interval;
-		_update_func = update_func;
+		_update = update;
 	}
 
 	void Run()
@@ -38,7 +38,7 @@ public:
 			if (interval >= _interval)
 			{
 				start = now;
-				_update_func(interval);
+				_update(interval);
 			}
 			else
 			{
@@ -49,7 +49,7 @@ public:
 
 	void Release()
 	{
-		_update_func = nullptr;
+		_update = nullptr;
 	}
 
 	void SetExit(bool exit) { _exit = exit; }
@@ -59,7 +59,7 @@ public:
 private:
 	bool _exit = false;
 	intvl_t _interval;
-	UpdateFunc _update_func;
+	UpdateFunc _update;
 };
 
 NAMESPACE_CLOSE

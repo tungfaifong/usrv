@@ -36,6 +36,7 @@ public:
 
 public:
 	template<typename ... Args> void Log(Level level, fmt::format_string<Args...> fmt, Args && ... args);
+	void Flush();
 
 private:
 	void _LogStart();
