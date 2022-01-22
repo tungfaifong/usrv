@@ -14,17 +14,26 @@ int run_timer();
 bool run_tcp_client(usrv::IP host, usrv::PORT port, int client_num);
 bool run_tcp_server(usrv::PORT port);
 
+// lua
+bool run_lua();
+
 int main(int argc, char* argv[])
 {
-    // run_timer();
-
-    if (strcmp(argv[1], "tcpclient") == 0)
-    {
-        run_tcp_client("127.0.0.1", 6666, 1);
-    }
-    else if (strcmp(argv[1], "tcpserver") == 0)
-    {
-        run_tcp_server(6666);
-    }
-    return 0;
+	if(strcmp(argv[1], "timer") == 0)
+	{
+		run_timer();
+	}
+	else if (strcmp(argv[1], "tcpclient") == 0)
+	{
+		run_tcp_client("127.0.0.1", 6666, 1);
+	}
+	else if (strcmp(argv[1], "tcpserver") == 0)
+	{
+		run_tcp_server(6666);
+	}
+	else if (strcmp(argv[1], "lua") == 0)
+	{
+		run_lua();
+	}
+	return 0;
 }

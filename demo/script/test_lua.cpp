@@ -1,36 +1,30 @@
 // Copyright (c) 2019-2020 TungFai Fong 
 
 #include "unit_manager.h"
-#include "common/path.h"
-#include "script/lua_manager.h"
+#include "units/logger_unit.h"
+#include "units/lua_unit.h"
+#include "units/server_unit.h"
 
-class CPPClass
-{
-public:
-    void print()
-    {
-        std::cout << "call CPPClass print" << std::endl;
-    }
-};
+using namespace usrv;
 
 bool run_lua()
 {
-    usrv::UnitManager mgr(10);
+	UnitManager::Instance()->Init(10);
 
-    std::string path = usrv::PTAH_ROOT + "/../test/script/main.lua";
-    usrv::LuaBindFunc bind_func = [](luabridge::Namespace ns)
-    {
-        ns.beginClass<CPPClass>("CPPClass")
-            .addConstructor<void(*)(void)>()
-            .addFunction("print", &CPPClass::print)
-            .endClass();
-    };
+	UnitManager::Instance()->Register("LOGGER", std::move(std::make_shared<LoggerUnit>(1 Mi)));
+	UnitManager::Instance()->Register("SERVER", std::move(std::make_shared<ServerUnit>(1 Ki, 1 Ki, 4 Mi)));
+	UnitManager::Instance()->Register("LUA", std::move(std::make_shared<LuaUnit>(usrv::PTAH_ROOT + "/demo/script/main.lua")));
 
-    auto lua_manager = std::make_shared<usrv::LuaManager>(path, bind_func);
+	auto server = std::dynamic_pointer_cast<ServerUnit>(UnitManager::Instance()->Get("SERVER"));
+	server->Listen(6666);
 
-    mgr.Register("lua_manager", std::move(lua_manager));
+	auto lua = std::dynamic_pointer_cast<LuaUnit>(UnitManager::Instance()->Get("LUA"));
 
-    mgr.Run();
+	server->Recv([&lua](NETID net_id, char * data, uint16_t size) {
+		lua->OnRecvFunc(net_id, data, size);
+	});
 
-    return true;
+	UnitManager::Instance()->Run();
+
+	return true;
 }

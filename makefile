@@ -2,11 +2,11 @@
 CC = gcc
 CXX = g++
 
-CXX_FLAGS = -Wall -fdiagnostics-color=always -g -std=c++20 -O2
+CXX_FLAGS = -Wall -fdiagnostics-color=always -g -std=c++20
 
 # 文件单独
 TARGET := main
-SUB_DIR = src src/interfaces src/units src/util demo demo/network demo/timer
+SUB_DIR = src src/interfaces src/units src/util demo demo/network demo/script demo/timer
 
 BUILD_DIR := out
 

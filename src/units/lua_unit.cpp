@@ -69,7 +69,7 @@ luabridge::Namespace LuaUnit::GetGlobalNamespace()
 
 void LuaUnit::OnRecvFunc(NETID net_id, char * data, uint16_t size)
 {
-	_on_recv(net_id, data, size);
+	_on_recv(net_id, std::string(data, size));
 }
 
 bool LuaUnit::_InitFunc(luabridge::LuaRef & func, const char * func_name)
