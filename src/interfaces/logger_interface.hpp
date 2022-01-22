@@ -1,7 +1,7 @@
 // Copyright (c) 2022 TungFai Fong <iam@tungfaifong.com>
 
-#ifndef USRV_LOGGER_INTERFACE_H
-#define USRV_LOGGER_INTERFACE_H
+#ifndef USRV_LOGGER_INTERFACE_HPP
+#define USRV_LOGGER_INTERFACE_HPP
 
 #include "unit_manager.h"
 #include "units/logger_unit.h"
@@ -57,4 +57,4 @@ inline void flush()
 
 NAMESPACE_CLOSE
 
-#endif // USRV_LOGGER_INTERFACE_H
+#endif // USRV_LOGGER_INTERFACE_HPP
