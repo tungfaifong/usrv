@@ -47,9 +47,9 @@ bool LuaUnit::Start()
 	{
 		success = _start();
 	}
-	catch(const std::exception & e)
+	catch(const luabridge::LuaException & e)
 	{
-		logger::error(e.what());
+		OnException(e);
 	}
 	return success;
 }
@@ -60,9 +60,9 @@ void LuaUnit::Update(intvl_t interval)
 	{
 		_update(interval);
 	}
-	catch(const std::exception & e)
+	catch(const luabridge::LuaException & e)
 	{
-		logger::error(e.what());
+		OnException(e);
 	}
 }
 
@@ -72,9 +72,9 @@ void LuaUnit::Stop()
 	{
 		_stop();
 	}
-	catch(const std::exception & e)
+	catch(const luabridge::LuaException & e)
 	{
-		logger::error(e.what());
+		OnException(e);
 	}
 }
 
@@ -100,10 +100,15 @@ void LuaUnit::OnRecvFunc(NETID net_id, char * data, uint16_t size)
 	{
 		_on_recv(net_id, std::string(data, size));
 	}
-	catch(const std::exception & e)
+	catch(const luabridge::LuaException & e)
 	{
-		logger::error(e.what());
+		OnException(e);
 	}
+}
+
+void LuaUnit::OnException(const luabridge::LuaException & e)
+{
+	logger::error("{}", e.what());
 }
 
 bool LuaUnit::_InitFunc(luabridge::LuaRef & func, const char * func_name)

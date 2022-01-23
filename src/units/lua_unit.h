@@ -32,6 +32,7 @@ public:
 	inline luabridge::Namespace GetGlobalNamespace();
 
 	void OnRecvFunc(NETID net_id, char * data, uint16_t size);
+	static void OnException(const luabridge::LuaException & e);
 
 private:
 	bool _InitFunc(luabridge::LuaRef & func, const char * func_name);
