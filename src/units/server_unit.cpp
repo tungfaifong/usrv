@@ -57,12 +57,12 @@ void ServerUnit::Listen(PORT port)
 	asio::co_spawn(_io_context, _IoListen(port), asio::detached);
 }
 
-NETID ServerUnit::Connect(const IP & ip, PORT port)
+NETID ServerUnit::Connect(const IP & ip, PORT port, uint32_t timeout)
 {
 	std::promise<NETID> promise_net_id;
 	auto future_net_id = promise_net_id.get_future();
 	asio::co_spawn(_io_context, _IoConnect(ip, port, promise_net_id), asio::detached);
-	if(future_net_id.wait_for(s_t(CONNECT_WAIT_TIME)) != std::future_status::ready)
+	if(future_net_id.wait_for(ms_t(timeout)) != std::future_status::ready)
 	{
 		return INVALID_NET_ID;
 	}

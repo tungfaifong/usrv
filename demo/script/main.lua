@@ -16,4 +16,5 @@ end
 
 function OnRecv(net_id, data)
 	logger.trace("OnRecv net_id:" .. net_id .. " data:" .. data)
+	server.Send(net_id, data, string.len(data))
 end

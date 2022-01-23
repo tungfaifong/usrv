@@ -16,6 +16,7 @@ NAMESPACE_OPEN
 class LoggerUnit : public Unit, public std::enable_shared_from_this<LoggerUnit>
 {
 public:
+	static constexpr uint16_t MAX_LOG_SIZE = UINT16_MAX;
 	enum Level
 	{
 		TRACE = 0,
@@ -47,7 +48,7 @@ private:
 	Loop _loop;
 	std::thread _log_thread;
 	SpscQueue _log_queue;
-	char _log_buffer[MESSAGE_BODY_SIZE];
+	char _log_buffer[MAX_LOG_SIZE];
 };
 
 template<typename ... Args> void LoggerUnit::Log(Level level, fmt::format_string<Args...> fmt, Args && ... args)

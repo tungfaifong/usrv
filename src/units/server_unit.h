@@ -19,7 +19,6 @@ class Peer;
 class ServerUnit : public Unit, public std::enable_shared_from_this<ServerUnit>
 {
 public:
-	static constexpr uint16_t CONNECT_WAIT_TIME = 3;
 	using OnRecvFunc = std::function<void(NETID, char *, uint16_t)>;
 
 	ServerUnit(size_t pp_alloc_num, size_t ps_alloc_num, size_t spsc_blk_num);
@@ -32,7 +31,7 @@ public:
 
 public:
 	void Listen(PORT port);
-	NETID Connect(const IP & ip, PORT port);
+	NETID Connect(const IP & ip, PORT port, uint32_t timeout);
 	void Disconnect(NETID net_id);
 	bool Send(NETID net_id, const char * data, uint16_t size);
 	void Recv(OnRecvFunc func);

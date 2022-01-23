@@ -23,7 +23,7 @@ public:
 bool Client::Start()
 {
 	auto server = std::dynamic_pointer_cast<ServerUnit>(UnitManager::Instance()->Get("SERVER"));
-	_server_net_id = server->Connect(_host, _port);
+	_server_net_id = server->Connect(_host, _port, 1000);
 	if(_server_net_id == INVALID_NET_ID)
 	{
 		logger::error("client connect failed.");

@@ -12,9 +12,9 @@ NAMESPACE_OPEN
 namespace server
 {
 
-inline NETID Connect(const IP & ip, PORT port)
+inline NETID Connect(const IP & ip, PORT port, uint32_t timeout)
 {
-	return std::dynamic_pointer_cast<ServerUnit>(UnitManager::Instance()->Get("SERVER"))->Connect(ip, port);
+	return std::dynamic_pointer_cast<ServerUnit>(UnitManager::Instance()->Get("SERVER"))->Connect(ip, port, timeout);
 }
 
 inline void Disconnect(NETID net_id)
