@@ -36,7 +36,7 @@ static constexpr TIMERID INVALID_TIMER_ID = -1;
 static constexpr uint16_t MESSAGE_HEAD_SIZE = sizeof(uint16_t);
 static constexpr uint16_t MESSAGE_BODY_SIZE = UINT16_MAX;
 
-static std::string PTAH_ROOT = getcwd(NULL, 1024);
+static std::string PATH_ROOT = getcwd(NULL, 1024);
 
 NAMESPACE_CLOSE
 

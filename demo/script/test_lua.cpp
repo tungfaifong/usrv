@@ -15,7 +15,7 @@ bool run_lua()
 	UnitManager::Instance()->Register("LOGGER", std::move(std::make_shared<LoggerUnit>(1 Mi)));
 	UnitManager::Instance()->Register("SERVER", std::move(std::make_shared<ServerUnit>(1 Ki, 1 Ki, 4 Mi)));
 	UnitManager::Instance()->Register("TIMER", std::move(std::make_shared<TimerUnit>(1 Ki, 1 Ki)));
-	UnitManager::Instance()->Register("LUA", std::move(std::make_shared<LuaUnit>(usrv::PTAH_ROOT + "/demo/script/main.lua")));
+	UnitManager::Instance()->Register("LUA", std::move(std::make_shared<LuaUnit>(usrv::PATH_ROOT + "/demo/script/main.lua")));
 
 	auto server = std::dynamic_pointer_cast<ServerUnit>(UnitManager::Instance()->Get("SERVER"));
 	server->Listen(6666);

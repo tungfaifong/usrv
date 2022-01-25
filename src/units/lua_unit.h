@@ -15,7 +15,7 @@ NAMESPACE_OPEN
 class LuaUnit : public Unit
 {
 public:
-	using ExposeFunc = std::function<void(luabridge::Namespace)>;
+	using ExposeFunc = std::function<void(const luabridge::Namespace &)>;
 
 	LuaUnit(const std::string & path, ExposeFunc func = nullptr);
 	virtual ~LuaUnit() = default;
