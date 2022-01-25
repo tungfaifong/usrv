@@ -3,6 +3,7 @@
 #ifndef USRV_LOGGER_UNIT_H
 #define USRV_LOGGER_UNIT_H
 
+#include <map>
 #include <thread>
 
 #include "fmt/core.h"
@@ -47,7 +48,8 @@ private:
 private:
 	Loop _loop;
 	std::thread _log_thread;
-	SpscQueue _log_queue;
+	size_t _spsc_blk_num;
+	std::map<std::thread::id, std::shared_ptr<SpscQueue>> _log_queues;
 	char _log_buffer[MAX_LOG_SIZE];
 };
 
@@ -60,7 +62,13 @@ template<typename ... Args> void LoggerUnit::Log(Level level, fmt::format_string
 	header.data16 = level;
 	header.data32 = 0;
 
-	_log_queue.Push(log.c_str(), header);
+	auto tid = std::this_thread::get_id();
+	if(_log_queues.find(tid) == _log_queues.end())
+	{
+		_log_queues[tid] = std::move(std::make_shared<SpscQueue>(_spsc_blk_num));
+	}
+
+	_log_queues[tid]->Push(log.c_str(), header);
 }
 
 NAMESPACE_CLOSE

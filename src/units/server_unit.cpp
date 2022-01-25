@@ -156,7 +156,7 @@ asio::awaitable<void> ServerUnit::_IoUpdate()
 	}
 	catch(const std::exception & e)
 	{
-		
+		logger::error("ServerUnit::_IoUpdate error:{}", e.what());
 	}
 }
 
@@ -173,7 +173,7 @@ asio::awaitable<void> ServerUnit::_IoListen(PORT port)
 	}
 	catch(const std::exception & e)
 	{
-
+		logger::error("ServerUnit::_IoListen error:{}", e.what());
 	}
 }
 
@@ -190,7 +190,7 @@ asio::awaitable<void> ServerUnit::_IoConnect(const IP & ip, PORT port, std::prom
 	}
 	catch(const std::exception & e)
 	{
-		
+		logger::error("ServerUnit::_IoConnect error:{}", e.what());
 	}
 }
 

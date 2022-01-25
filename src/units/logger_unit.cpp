@@ -8,7 +8,7 @@
 
 NAMESPACE_OPEN
 
-LoggerUnit::LoggerUnit(size_t spsc_blk_num): _log_queue(spsc_blk_num)
+LoggerUnit::LoggerUnit(size_t spsc_blk_num): _spsc_blk_num(spsc_blk_num)
 {
 
 }
@@ -53,17 +53,21 @@ void LoggerUnit::_LogStart()
 
 void LoggerUnit::_LogUpdate(intvl_t interval)
 {
-	while(!_log_queue.Empty())
+	for(auto & q : _log_queues)
 	{
-		SpscQueue::Header header;
-
-		if(!_log_queue.TryPop(_log_buffer, header))
+		while(!q.second->Empty())
 		{
-			continue;
-		}
+			SpscQueue::Header header;
 
-		_RealLog((Level)header.data16, _log_buffer, header.size);
+			if(!q.second->TryPop(_log_buffer, header))
+			{
+				continue;
+			}
+
+			_RealLog((Level)header.data16, _log_buffer, header.size);
+		}
 	}
+	
 }
 
 void LoggerUnit::_RealLog(Level level, const char * log, uint16_t size)
