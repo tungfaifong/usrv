@@ -28,7 +28,7 @@ bool run_tcp_server(PORT port)
 	server->Listen(port);
 
 	server->Recv([&server](NETID net_id, char * data, uint16_t size) {
-		logger::info("recv: net_id:{} data:{}", net_id, std::string_view(data, size));
+		LOGGER_INFO("recv: net_id:{} data:{}", net_id, std::string_view(data, size));
 		server->Send(net_id, data, size);
 	});
 

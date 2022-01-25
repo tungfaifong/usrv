@@ -13,52 +13,43 @@ namespace logger
 {
 
 template<typename ... Args>
-inline void trace(fmt::format_string<Args...> fmt, Args && ... args)
+inline void log(LoggerUnit::Level level, fmt::format_string<Args...> fmt, Args && ... args)
 {
-	std::dynamic_pointer_cast<LoggerUnit>(UnitManager::Instance()->Get("LOGGER"))->Log(LoggerUnit::Level::TRACE, fmt, std::forward<Args>(args)...);
+	std::dynamic_pointer_cast<LoggerUnit>(UnitManager::Instance()->Get("LOGGER"))->Log(level, fmt, std::forward<Args>(args)...);
+}
+
+template<typename T>
+inline void log(LoggerUnit::Level level, const T & msg)
+{
+	log(level, "{}", msg);
 }
 
 template<typename ... Args>
-inline void debug(fmt::format_string<Args...> fmt, Args && ... args)
+inline void log(const char * file, int32_t line, const char * func, LoggerUnit::Level level, fmt::format_string<Args...> fmt, Args && ... args)
 {
-	std::dynamic_pointer_cast<LoggerUnit>(UnitManager::Instance()->Get("LOGGER"))->Log(LoggerUnit::Level::DEBUG, fmt, std::forward<Args>(args)...);
+	log(level, "[{}:{}:{}()] {}", file, line, func, fmt::format(fmt, std::forward<Args>(args)...));
 }
 
-template<typename ... Args>
-inline void info(fmt::format_string<Args...> fmt, Args && ... args)
+template<typename T>
+inline void log(const char * file, int32_t line, const char * func, LoggerUnit::Level level, const T & msg)
 {
-	std::dynamic_pointer_cast<LoggerUnit>(UnitManager::Instance()->Get("LOGGER"))->Log(LoggerUnit::Level::INFO, fmt, std::forward<Args>(args)...);
+	log(file, line, func, level, "{}", msg);
 }
-
-template<typename ... Args>
-inline void warn(fmt::format_string<Args...> fmt, Args && ... args)
-{
-	std::dynamic_pointer_cast<LoggerUnit>(UnitManager::Instance()->Get("LOGGER"))->Log(LoggerUnit::Level::WARN, fmt, std::forward<Args>(args)...);
-}
-
-template<typename ... Args>
-inline void error(fmt::format_string<Args...> fmt, Args && ... args)
-{
-	std::dynamic_pointer_cast<LoggerUnit>(UnitManager::Instance()->Get("LOGGER"))->Log(LoggerUnit::Level::ERROR, fmt, std::forward<Args>(args)...);
-}
-
-template<typename ... Args>
-inline void critical(fmt::format_string<Args...> fmt, Args && ... args)
-{
-	std::dynamic_pointer_cast<LoggerUnit>(UnitManager::Instance()->Get("LOGGER"))->Log(LoggerUnit::Level::CRITICAL, fmt, std::forward<Args>(args)...);
-}
-
-inline void trace_l(const std::string & log) { trace("{}", log); }
-inline void debug_l(const std::string & log) { debug("{}", log); }
-inline void info_l(const std::string & log) { info("{}", log); }
-inline void warn_l(const std::string & log) { warn("{}", log); }
-inline void error_l(const std::string & log) { error("{}", log); }
-inline void critical_l(const std::string & log) { critical("{}", log); }
 
 inline void flush()
 {
 	std::dynamic_pointer_cast<LoggerUnit>(UnitManager::Instance()->Get("LOGGER"))->Flush();
 }
+
+#define LOGGER_TRACE(...) logger::log(__FILE__, __LINE__, __FUNCTION__, LoggerUnit::Level::TRACE, __VA_ARGS__)
+#define LOGGER_DEBUG(...) logger::log(__FILE__, __LINE__, __FUNCTION__, LoggerUnit::Level::DEBUG, __VA_ARGS__)
+#define LOGGER_INFO(...) logger::log(__FILE__, __LINE__, __FUNCTION__, LoggerUnit::Level::INFO, __VA_ARGS__)
+#define LOGGER_WARN(...) logger::log(__FILE__, __LINE__, __FUNCTION__, LoggerUnit::Level::WARN, __VA_ARGS__)
+#define LOGGER_ERROR(...) logger::log(__FILE__, __LINE__, __FUNCTION__, LoggerUnit::Level::ERROR, __VA_ARGS__)
+#define LOGGER_CRITICAL(...) logger::log(__FILE__, __LINE__, __FUNCTION__, LoggerUnit::Level::CRITICAL, __VA_ARGS__)
+#define LOGGER_FLUSH() logger::flush()
+
+inline void lua_log(uint8_t level, const std::string & msg) { log((LoggerUnit::Level)level, msg); };
 
 }
 

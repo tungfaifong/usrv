@@ -45,13 +45,13 @@ void UnitManager::Run()
 {
 	if (!_Init())
 	{
-		logger::flush();
+		LOGGER_FLUSH();
 		return;
 	}
 
 	if (!_Start())
 	{
-		logger::flush();
+		LOGGER_FLUSH();
 		return;
 	}
 
@@ -80,12 +80,12 @@ bool UnitManager::_Init()
 	{
 		if(!unit.second->Init())
 		{
-			logger::error("UnitManager::Init {} fail", unit.first);
+			LOGGER_ERROR("UnitManager::Init {} fail", unit.first);
 			return false;
 		}
-		logger::info("UnitManager::Init {} success", unit.first);
+		LOGGER_INFO("UnitManager::Init {} success", unit.first);
 	}
-	logger::info("UnitManager::Init All units success");
+	LOGGER_INFO("UnitManager::Init All units success");
 	return true;
 }
 
@@ -95,12 +95,12 @@ bool UnitManager::_Start()
 	{
 		if (!unit.second->Start())
 		{
-			logger::error("UnitManager::_Start {} fail", unit.first);
+			LOGGER_ERROR("UnitManager::_Start {} fail", unit.first);
 			return false;
 		}
-		logger::info("UnitManager::_Start {} success", unit.first);
+		LOGGER_INFO("UnitManager::_Start {} success", unit.first);
 	}
-	logger::info("UnitManager::_Start All units success");
+	LOGGER_INFO("UnitManager::_Start All units success");
 	return true;
 }
 
@@ -117,9 +117,9 @@ void UnitManager::_Stop()
 	for (auto & unit : _units)
 	{
 		unit.second->Stop();
-		logger::info("UnitManager::_Stop {} success", unit.first);
+		LOGGER_INFO("UnitManager::_Stop {} success", unit.first);
 	}
-	logger::info("UnitManager::_Stop All units success");
+	LOGGER_INFO("UnitManager::_Stop All units success");
 }
 
 void UnitManager::_Release()

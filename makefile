@@ -16,7 +16,8 @@ INC_ASIO = -I$(PATH_3RDPARTY)/asio-1.20.0
 INC_FMT = -I$(PATH_3RDPARTY)/fmt-8.1.0/include
 INC_LUA = -I$(PATH_3RDPARTY)/lua-5.4.3/include
 INC_LUA_BRIDGE = -I$(PATH_3RDPARTY)/LuaBridge-2.7
-INC_ALL := -I./src $(INC_ASIO) $(INC_FMT) $(INC_LUA) $(INC_LUA_BRIDGE)
+INC_SPDLOG = -I$(PATH_3RDPARTY)/spdlog-1.9.2
+INC_ALL := -I./src $(INC_ASIO) $(INC_FMT) $(INC_LUA) $(INC_LUA_BRIDGE) $(INC_SPDLOG)
 
 LIB_FMT = -L$(PATH_3RDPARTY)/fmt-8.1.0/lib -lfmt
 LIB_LUA = -L$(PATH_3RDPARTY)/lua-5.4.3/lib -llua
@@ -24,7 +25,8 @@ LIB_ALL := $(LIB_FMT) $(LIB_LUA)
 
 LINK_FLAGS := $(LIB_ALL) -lpthread -ldl
 
-DEFINE += 
+DEFINE_SPDLOG := -DSPDLOG_FMT_EXTERNAL
+DEFINE += $(DEFINE_SPDLOG)
 
 # mksvr
 $(shell if [ ! -e $(BUILD_DIR) ];then mkdir -p $(BUILD_DIR); fi)

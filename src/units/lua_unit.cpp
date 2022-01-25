@@ -20,13 +20,13 @@ bool LuaUnit::Init()
 
 	if (luaL_dofile(_lua_state, _file.c_str()))
 	{
-		logger::error("LuaUnit::Init error: missing file {}", _file);
+		LOGGER_ERROR("LuaUnit::Init error: missing file {}", _file);
 		return false;
 	}
 
 	if (!_InitFunc(_start, "Start") || !_InitFunc(_update, "Update") || !_InitFunc(_stop, "Stop") || !_InitFunc(_on_recv, "OnRecv"))
 	{
-		logger::error("LuaUnit::Init error: _InitFunc filed.");
+		LOGGER_ERROR("LuaUnit::Init error: _InitFunc filed.");
 		return false;
 	}
 
@@ -108,7 +108,7 @@ void LuaUnit::OnRecvFunc(NETID net_id, char * data, uint16_t size)
 
 void LuaUnit::OnException(const luabridge::LuaException & e)
 {
-	logger::error("{}", e.what());
+	LOGGER_ERROR("{}", e.what());
 }
 
 bool LuaUnit::_InitFunc(luabridge::LuaRef & func, const char * func_name)
@@ -116,7 +116,7 @@ bool LuaUnit::_InitFunc(luabridge::LuaRef & func, const char * func_name)
 	func = GetGlobal(func_name);
 	if (!func.isFunction())
 	{
-		logger::error("lua func error: missing {}", func_name);
+		LOGGER_ERROR("lua func error: missing {}", func_name);
 		return false;
 	}
 	return true;
@@ -126,12 +126,7 @@ void LuaUnit::_Expose()
 {
 	GetGlobalNamespace()
 		.beginNamespace("logger")
-			.addFunction("trace", logger::trace_l)
-			.addFunction("debug", logger::debug_l)
-			.addFunction("info", logger::info_l)
-			.addFunction("warn", logger::warn_l)
-			.addFunction("error", logger::error_l)
-			.addFunction("critical", logger::critical_l)
+			.addFunction("log", logger::lua_log)
 			.addFunction("flush", logger::flush)
 		.endNamespace()
 		.beginNamespace("server")
@@ -140,7 +135,7 @@ void LuaUnit::_Expose()
 			.addFunction("Send", server::Send)
 		.endNamespace()
 		.beginNamespace("timer")
-			.addFunction("CreateTimer", timer::CreateTimerL)
+			.addFunction("CreateTimer", timer::LuaCreateTimer)
 			.addFunction("CallTimer", timer::CallTimer)
 			.addFunction("RemoveTimer", timer::RemoveTimer)
 		.endNamespace();

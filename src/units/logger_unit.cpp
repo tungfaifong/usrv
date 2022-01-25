@@ -4,6 +4,8 @@
 
 #include <iostream>
 
+#include "spdlog/spdlog.h"
+
 #include "unit_manager.h"
 
 NAMESPACE_OPEN
@@ -21,12 +23,7 @@ LoggerUnit::~LoggerUnit()
 void LoggerUnit::OnRegister(const std::shared_ptr<UnitManager> & mgr)
 {
 	Unit::OnRegister(mgr);
-	_loop.Init(_mgr->Interval(), [self = shared_from_this()](intvl_t interval){
-		self->_LogUpdate(interval);
-	});
-	_log_thread = std::thread([self = shared_from_this()](){
-		self->_LogStart();
-	});
+	_Init();
 }
 
 void LoggerUnit::Stop()
@@ -44,6 +41,18 @@ void LoggerUnit::Release()
 void LoggerUnit::Flush()
 {
 	_LogUpdate(0);
+}
+
+void LoggerUnit::_Init()
+{
+	spdlog::set_pattern("[%Y-%m-%d %H:%M:%S.%f] [%^%l%$] %v");
+	spdlog::set_level(spdlog::level::trace);
+	_loop.Init(_mgr->Interval(), [self = shared_from_this()](intvl_t interval){
+		self->_LogUpdate(interval);
+	});
+	_log_thread = std::thread([self = shared_from_this()](){
+		self->_LogStart();
+	});
 }
 
 void LoggerUnit::_LogStart()
@@ -72,8 +81,7 @@ void LoggerUnit::_LogUpdate(intvl_t interval)
 
 void LoggerUnit::_RealLog(Level level, const char * log, uint16_t size)
 {
-	static std::string prefix[Level::COUNT] = {"[trace]", "[debug]", "[info]", "[warn]", "[error]", "[critical]"};
-	std::cout << prefix[level] << " " << std::string_view(log, size) << std::endl;
+	spdlog::log((spdlog::level::level_enum)level, std::string_view(log, size));
 }
 
 NAMESPACE_CLOSE

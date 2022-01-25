@@ -25,7 +25,7 @@ bool ServerUnit::Start()
 {
 	if(!_on_recv)
 	{
-		logger::error("ServerUnit::Start error: no _on_recv, please call Recv(OnRecvFunc func)");
+		LOGGER_ERROR("ServerUnit::Start error: no _on_recv, please call Recv(OnRecvFunc func)");
 		return false;
 	}
 
@@ -156,7 +156,7 @@ asio::awaitable<void> ServerUnit::_IoUpdate()
 	}
 	catch(const std::exception & e)
 	{
-		logger::error("ServerUnit::_IoUpdate error:{}", e.what());
+		LOGGER_ERROR("ServerUnit::_IoUpdate error:{}", e.what());
 	}
 }
 
@@ -173,7 +173,7 @@ asio::awaitable<void> ServerUnit::_IoListen(PORT port)
 	}
 	catch(const std::exception & e)
 	{
-		logger::error("ServerUnit::_IoListen error:{}", e.what());
+		LOGGER_ERROR("ServerUnit::_IoListen error:{}", e.what());
 	}
 }
 
@@ -190,7 +190,7 @@ asio::awaitable<void> ServerUnit::_IoConnect(const IP & ip, PORT port, std::prom
 	}
 	catch(const std::exception & e)
 	{
-		logger::error("ServerUnit::_IoConnect error:{}", e.what());
+		LOGGER_ERROR("ServerUnit::_IoConnect error:{}", e.what());
 	}
 }
 

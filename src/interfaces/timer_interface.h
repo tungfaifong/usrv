@@ -22,7 +22,17 @@ inline TIMERID CreateTimer(intvl_t time, std::function<void()> && callback)
 	return std::dynamic_pointer_cast<TimerUnit>(UnitManager::Instance()->Get("TIMER"))->CreateTimer(time, std::move(callback));
 }
 
-inline TIMERID CreateTimerL(intvl_t time, luabridge::LuaRef callback)
+inline bool CallTimer(TIMERID id)
+{
+	return std::dynamic_pointer_cast<TimerUnit>(UnitManager::Instance()->Get("TIMER"))->CallTimer(id);
+}
+
+inline bool RemoveTimer(TIMERID id)
+{
+	return std::dynamic_pointer_cast<TimerUnit>(UnitManager::Instance()->Get("TIMER"))->RemoveTimer(id);
+}
+
+inline TIMERID LuaCreateTimer(intvl_t time, luabridge::LuaRef callback)
 {
 	auto cb = [callback](){
 		try
@@ -35,16 +45,6 @@ inline TIMERID CreateTimerL(intvl_t time, luabridge::LuaRef callback)
 		}
 	};
 	return CreateTimer(time, cb);
-}
-
-inline bool CallTimer(TIMERID id)
-{
-	return std::dynamic_pointer_cast<TimerUnit>(UnitManager::Instance()->Get("TIMER"))->CallTimer(id);
-}
-
-inline bool RemoveTimer(TIMERID id)
-{
-	return std::dynamic_pointer_cast<TimerUnit>(UnitManager::Instance()->Get("TIMER"))->RemoveTimer(id);
 }
 
 }

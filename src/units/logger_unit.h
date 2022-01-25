@@ -26,6 +26,7 @@ public:
 		WARN,
 		ERROR,
 		CRITICAL,
+		OFF,
 		COUNT,
 	};
 
@@ -41,6 +42,7 @@ public:
 	void Flush();
 
 private:
+	void _Init();
 	void _LogStart();
 	void _LogUpdate(intvl_t interval);
 	void _RealLog(Level level, const char * log, uint16_t size);
@@ -55,7 +57,7 @@ private:
 
 template<typename ... Args> void LoggerUnit::Log(Level level, fmt::format_string<Args...> fmt, Args && ... args)
 {
-	std::string log = fmt::format(fmt, std::forward<Args>(args)...);
+	auto log = fmt::format(fmt, std::forward<Args>(args)...);
 
 	SpscQueue::Header header;
 	header.size = log.size();

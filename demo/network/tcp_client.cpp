@@ -26,7 +26,7 @@ bool Client::Start()
 	_server_net_id = server->Connect(_host, _port, 1000);
 	if(_server_net_id == INVALID_NET_ID)
 	{
-		logger::error("client connect failed.");
+		LOGGER_ERROR("client connect failed.");
 		return false;
 	}
 	return true;
@@ -53,7 +53,7 @@ bool run_tcp_client(IP host, PORT port, int client_num)
 	game->_port = port;
 
 	server->Recv([](NETID net_id, char * data, uint16_t size) {
-		logger::info("recv: net_id:{} data:{}", net_id, std::string(data, size));
+		LOGGER_INFO("recv: net_id:{} data:{}", net_id, std::string(data, size));
 	});
 
 	UnitManager::Instance()->Run();
