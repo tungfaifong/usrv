@@ -35,16 +35,16 @@ public:
 	static void OnException(const luabridge::LuaException & e);
 
 private:
-	bool _InitFunc(luabridge::LuaRef & func, const char * func_name);
+	bool _InitFunc(std::shared_ptr<luabridge::LuaRef> & func, const char * func_name);
 	void _Expose();
 
 private:
 	std::string _file;
 	lua_State * _lua_state;
-	luabridge::LuaRef _start;
-	luabridge::LuaRef _update;
-	luabridge::LuaRef _stop;
-	luabridge::LuaRef _on_recv;
+	std::shared_ptr<luabridge::LuaRef> _start;
+	std::shared_ptr<luabridge::LuaRef> _update;
+	std::shared_ptr<luabridge::LuaRef> _stop;
+	std::shared_ptr<luabridge::LuaRef> _on_recv;
 	ExposeFunc _expose;
 };
 	

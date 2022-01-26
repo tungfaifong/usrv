@@ -45,7 +45,7 @@ bool LuaUnit::Start()
 	auto success = true;
 	try
 	{
-		success = _start();
+		success = (*_start)();
 	}
 	catch(const luabridge::LuaException & e)
 	{
@@ -58,7 +58,7 @@ void LuaUnit::Update(intvl_t interval)
 {
 	try
 	{
-		_update(interval);
+		(*_update)(interval);
 	}
 	catch(const luabridge::LuaException & e)
 	{
@@ -70,7 +70,7 @@ void LuaUnit::Stop()
 {
 	try
 	{
-		_stop();
+		(*_stop)();
 	}
 	catch(const luabridge::LuaException & e)
 	{
@@ -80,6 +80,10 @@ void LuaUnit::Stop()
 
 void LuaUnit::Release()
 {
+	_start = nullptr;
+	_update = nullptr;
+	_stop = nullptr;
+	_on_recv = nullptr;
 	lua_close(_lua_state);
 	Unit::Release();
 }
@@ -98,7 +102,7 @@ void LuaUnit::OnRecvFunc(NETID net_id, char * data, uint16_t size)
 {
 	try
 	{
-		_on_recv(net_id, std::string(data, size));
+		(*_on_recv)(net_id, std::string(data, size));
 	}
 	catch(const luabridge::LuaException & e)
 	{
@@ -111,10 +115,10 @@ void LuaUnit::OnException(const luabridge::LuaException & e)
 	LOGGER_ERROR("{}", e.what());
 }
 
-bool LuaUnit::_InitFunc(luabridge::LuaRef & func, const char * func_name)
+bool LuaUnit::_InitFunc(std::shared_ptr<luabridge::LuaRef> & func, const char * func_name)
 {
-	func = GetGlobal(func_name);
-	if (!func.isFunction())
+	func = std::make_shared<luabridge::LuaRef>(GetGlobal(func_name));
+	if (!func->isFunction())
 	{
 		LOGGER_ERROR("lua func error: missing {}", func_name);
 		return false;
