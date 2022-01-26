@@ -21,7 +21,7 @@ bool run_tcp_server(PORT port)
 	signal(SIGUSR1, SignalHandler);
 
 	UnitManager::Instance()->Init(10);
-	UnitManager::Instance()->Register("LOGGER", std::move(std::make_shared<LoggerUnit>(LoggerUnit::Level::TRACE, 1 Mi)));
+	UnitManager::Instance()->Register("LOGGER", std::move(std::make_shared<LoggerUnit>(LoggerUnit::Level::TRACE, "/logs/tcpserver.log", 1 Mi)));
 	UnitManager::Instance()->Register("SERVER", std::move(std::make_shared<ServerUnit>(1 Ki, 1 Ki, 4 Mi)));
 
 	auto server = std::dynamic_pointer_cast<ServerUnit>(UnitManager::Instance()->Get("SERVER"));

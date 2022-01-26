@@ -34,7 +34,7 @@ public:
 int run_timer()
 {
 	UnitManager::Instance()->Init(10);
-	UnitManager::Instance()->Register("LOGGER", std::move(std::make_shared<LoggerUnit>(LoggerUnit::Level::TRACE, 1 Mi)));
+	UnitManager::Instance()->Register("LOGGER", std::move(std::make_shared<LoggerUnit>(LoggerUnit::Level::TRACE, "/logs/timer.log", 1 Mi)));
 	UnitManager::Instance()->Register("TIMER", std::move(std::make_shared<TimerUnit>(1 Ki, 1 Ki)));
 
 	CallObj a;

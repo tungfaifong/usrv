@@ -10,7 +10,7 @@
 
 NAMESPACE_OPEN
 
-LoggerUnit::LoggerUnit(Level level, size_t spsc_blk_num):_level(level), _spsc_blk_num(spsc_blk_num)
+LoggerUnit::LoggerUnit(Level level, std::string file_name, size_t spsc_blk_num):_level(level), _file_name(file_name), _spsc_blk_num(spsc_blk_num)
 {
 
 }
@@ -45,8 +45,10 @@ void LoggerUnit::Flush()
 
 void LoggerUnit::_Init()
 {
-	spdlog::set_level((spdlog::level::level_enum)_level);
-	spdlog::set_pattern("[%Y-%m-%d %H:%M:%S.%f] [%^%l%$] %v");
+	_logger = spdlog::daily_logger_st("logger", PATH_ROOT + _file_name, 0, 0);
+	_logger->set_level((spdlog::level::level_enum)_level);
+	_logger->set_pattern("[%Y-%m-%d %H:%M:%S.%f] [%^%l%$] %v");
+	
 	_loop.Init(_mgr->Interval(), [self = shared_from_this()](intvl_t interval){
 		self->_LogUpdate(interval);
 	});
@@ -81,7 +83,7 @@ void LoggerUnit::_LogUpdate(intvl_t interval)
 
 void LoggerUnit::_RealLog(Level level, const char * log, uint16_t size)
 {
-	spdlog::log((spdlog::level::level_enum)level, std::string_view(log, size));
+	_logger->log((spdlog::level::level_enum)level, std::string_view(log, size));
 }
 
 NAMESPACE_CLOSE

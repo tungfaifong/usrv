@@ -6,6 +6,7 @@
 #include <map>
 #include <thread>
 
+#include "spdlog/sinks/daily_file_sink.h"
 #include "fmt/core.h"
 
 #include "components/loop.hpp"
@@ -30,7 +31,7 @@ public:
 		COUNT,
 	};
 
-	LoggerUnit(Level level, size_t spsc_blk_num);
+	LoggerUnit(Level level, std::string file_name, size_t spsc_blk_num);
 	virtual ~LoggerUnit();
 
 	virtual void OnRegister(const std::shared_ptr<UnitManager> & mgr) override final;
@@ -49,10 +50,12 @@ private:
 
 private:
 	Level _level;
+	std::string _file_name;
 	Loop _loop;
 	std::thread _log_thread;
 	size_t _spsc_blk_num;
 	std::map<std::thread::id, std::shared_ptr<SpscQueue>> _log_queues;
+	std::shared_ptr<spdlog::logger> _logger;
 	char _log_buffer[MAX_LOG_SIZE];
 };
 
@@ -62,7 +65,7 @@ template<typename ... Args> void LoggerUnit::Log(Level level, fmt::format_string
 	{
 		return;
 	}
-	
+
 	auto log = fmt::format(fmt, std::forward<Args>(args)...);
 
 	SpscQueue::Header header;

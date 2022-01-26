@@ -42,7 +42,7 @@ void Client::Update(intvl_t interval)
 bool run_tcp_client(IP host, PORT port, int client_num)
 {
 	UnitManager::Instance()->Init(10);
-	UnitManager::Instance()->Register("LOGGER", std::move(std::make_shared<LoggerUnit>(LoggerUnit::Level::TRACE, 1 Mi)));
+	UnitManager::Instance()->Register("LOGGER", std::move(std::make_shared<LoggerUnit>(LoggerUnit::Level::TRACE, "/logs/tcpclient.log", 1 Mi)));
 	UnitManager::Instance()->Register("SERVER", std::move(std::make_shared<ServerUnit>(1 Ki, 1 Ki, 4 Mi)));
 	UnitManager::Instance()->Register("CLIENT", std::move(std::make_shared<Client>()));
 
