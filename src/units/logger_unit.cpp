@@ -10,7 +10,7 @@
 
 NAMESPACE_OPEN
 
-LoggerUnit::LoggerUnit(size_t spsc_blk_num): _spsc_blk_num(spsc_blk_num)
+LoggerUnit::LoggerUnit(Level level, size_t spsc_blk_num):_level(level), _spsc_blk_num(spsc_blk_num)
 {
 
 }
@@ -45,8 +45,8 @@ void LoggerUnit::Flush()
 
 void LoggerUnit::_Init()
 {
+	spdlog::set_level((spdlog::level::level_enum)_level);
 	spdlog::set_pattern("[%Y-%m-%d %H:%M:%S.%f] [%^%l%$] %v");
-	spdlog::set_level(spdlog::level::trace);
 	_loop.Init(_mgr->Interval(), [self = shared_from_this()](intvl_t interval){
 		self->_LogUpdate(interval);
 	});

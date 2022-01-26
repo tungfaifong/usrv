@@ -30,7 +30,7 @@ public:
 		COUNT,
 	};
 
-	LoggerUnit(size_t spsc_blk_num);
+	LoggerUnit(Level level, size_t spsc_blk_num);
 	virtual ~LoggerUnit();
 
 	virtual void OnRegister(const std::shared_ptr<UnitManager> & mgr) override final;
@@ -48,6 +48,7 @@ private:
 	void _RealLog(Level level, const char * log, uint16_t size);
 
 private:
+	Level _level;
 	Loop _loop;
 	std::thread _log_thread;
 	size_t _spsc_blk_num;
@@ -57,6 +58,11 @@ private:
 
 template<typename ... Args> void LoggerUnit::Log(Level level, fmt::format_string<Args...> fmt, Args && ... args)
 {
+	if(level < _level)
+	{
+		return;
+	}
+	
 	auto log = fmt::format(fmt, std::forward<Args>(args)...);
 
 	SpscQueue::Header header;
