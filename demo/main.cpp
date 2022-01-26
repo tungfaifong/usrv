@@ -3,37 +3,18 @@
 #include <iostream>
 #include <cstring>
 
-#include "unit_manager.h"
-#include "units/timer_unit.h"
-#include "util/time.h"
-
-// timer test
-int run_timer();
-
-// network
-bool run_tcp_client(usrv::IP host, usrv::PORT port, int client_num);
-bool run_tcp_server(usrv::PORT port);
-
-// lua
-bool run_lua();
+bool run_client();
+bool run_server();
 
 int main(int argc, char* argv[])
 {
-	if(strcmp(argv[1], "timer") == 0)
+	if (strcmp(argv[1], "client") == 0)
 	{
-		run_timer();
+		run_client();
 	}
-	else if (strcmp(argv[1], "tcpclient") == 0)
+	else if (strcmp(argv[1], "server") == 0)
 	{
-		run_tcp_client("127.0.0.1", 6666, 1);
-	}
-	else if (strcmp(argv[1], "tcpserver") == 0)
-	{
-		run_tcp_server(6666);
-	}
-	else if (strcmp(argv[1], "lua") == 0)
-	{
-		run_lua();
+		run_server();
 	}
 	return 0;
 }

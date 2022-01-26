@@ -8,14 +8,24 @@
 
 using namespace usrv;
 
-bool run_lua()
+void SignalHandler(int signum)
 {
+	if(signum == SIGUSR1)
+	{
+		UnitManager::Instance()->SetExit(true);
+	}
+}
+
+bool run_server()
+{
+	signal(SIGUSR1, SignalHandler);
+
 	UnitManager::Instance()->Init(10);
 
-	UnitManager::Instance()->Register("LOGGER", std::move(std::make_shared<LoggerUnit>(LoggerUnit::Level::TRACE, "/logs/lua.log", 1 Mi)));
+	UnitManager::Instance()->Register("LOGGER", std::move(std::make_shared<LoggerUnit>(LoggerUnit::Level::TRACE, "/logs/server.log", 1 Mi)));
 	UnitManager::Instance()->Register("SERVER", std::move(std::make_shared<ServerUnit>(1 Ki, 1 Ki, 4 Mi)));
 	UnitManager::Instance()->Register("TIMER", std::move(std::make_shared<TimerUnit>(1 Ki, 1 Ki)));
-	UnitManager::Instance()->Register("LUA", std::move(std::make_shared<LuaUnit>(usrv::PATH_ROOT + "/demo/script/main.lua")));
+	UnitManager::Instance()->Register("LUA", std::move(std::make_shared<LuaUnit>(usrv::PATH_ROOT + "/demo/main.lua")));
 
 	auto server = std::dynamic_pointer_cast<ServerUnit>(UnitManager::Instance()->Get("SERVER"));
 	server->Listen(6666);
