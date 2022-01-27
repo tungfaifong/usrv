@@ -4,7 +4,7 @@
 #include <cstring>
 
 bool run_client();
-bool run_server();
+bool run_server(uint64_t interval);
 
 int main(int argc, char* argv[])
 {
@@ -14,7 +14,8 @@ int main(int argc, char* argv[])
 	}
 	else if (strcmp(argv[1], "server") == 0)
 	{
-		run_server();
+
+		run_server(atoi(argv[2]));
 	}
 	return 0;
 }

@@ -119,39 +119,38 @@ asio::awaitable<void> ServerUnit::_IoUpdate()
 {
 	try
 	{
-		auto start = StdNow();
-		auto now = start;
-		auto interval = Ns2Ms(now - start);
 		while(true)
 		{
-			now = StdNow();
-			interval = Ns2Ms(now - start);
-			if(interval >= _io_interval)
+			auto idle = true;
+
+			while(!_send_queue.Empty())
 			{
-				start = now;
-				while(!_send_queue.Empty())
+				SpscQueue::Header header;
+
+				if(!_send_queue.TryPop(_send_buffer, header))
 				{
-					SpscQueue::Header header;
-
-					if(!_send_queue.TryPop(_send_buffer, header))
-					{
-						continue;
-					}
-
-					if(!_peers.Find(header.data16))
-					{
-						continue;
-					}
-
-					co_await _peers[header.data16]->Send(_send_buffer, header.size);
+					continue;
 				}
+
+				if(!_peers.Find(header.data16))
+				{
+					continue;
+				}
+
+				co_await _peers[header.data16]->Send(_send_buffer, header.size);
+
+				idle = false;
 			}
-			else
+
+			intvl_t interval = 0;
+			if(idle)
 			{
-				_timer.expires_after(ms_t(_io_interval - interval));
-				asio::error_code ec;
-				co_await _timer.async_wait(redirect_error(asio::use_awaitable, ec));
+				interval = _io_interval;
 			}
+
+			_timer.expires_after(ms_t(interval));
+			asio::error_code ec;
+			co_await _timer.async_wait(redirect_error(asio::use_awaitable, ec));
 		}
 	}
 	catch(const std::exception & e)

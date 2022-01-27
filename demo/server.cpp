@@ -16,14 +16,14 @@ void SignalHandler(int signum)
 	}
 }
 
-bool run_server()
+bool run_server(intvl_t interval)
 {
 	signal(SIGUSR1, SignalHandler);
 
-	UnitManager::Instance()->Init(10);
+	UnitManager::Instance()->Init(interval);
 
 	UnitManager::Instance()->Register("LOGGER", std::move(std::make_shared<LoggerUnit>(LoggerUnit::Level::TRACE, "/logs/server.log", 1 Mi)));
-	UnitManager::Instance()->Register("SERVER", std::move(std::make_shared<ServerUnit>(1 Ki, 1 Ki, 4 Mi)));
+	UnitManager::Instance()->Register("SERVER", std::move(std::make_shared<ServerUnit>(1 Ki, 1 Ki, 1 Mi)));
 	UnitManager::Instance()->Register("TIMER", std::move(std::make_shared<TimerUnit>(1 Ki, 1 Ki)));
 	UnitManager::Instance()->Register("LUA", std::move(std::make_shared<LuaUnit>(usrv::PATH_ROOT + "/demo/main.lua")));
 
