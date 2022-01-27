@@ -30,7 +30,7 @@ public:
 private:
 	bool _Init();
 	bool _Start();
-	void _Update(intvl_t interval);
+	bool _Update(intvl_t interval);
 	void _Stop();
 	void _Release();
 

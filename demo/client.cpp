@@ -13,7 +13,7 @@ public:
 	~Client() = default;
 
 	virtual bool Start();
-	virtual void Update(intvl_t interval);
+	virtual bool Update(intvl_t interval);
 
 	NETID _server_net_id = INVALID_NET_ID;
 };
@@ -30,11 +30,12 @@ bool Client::Start()
 	return true;
 }
 
-void Client::Update(intvl_t interval)
+bool Client::Update(intvl_t interval)
 {
 	auto server = std::dynamic_pointer_cast<ServerUnit>(UnitManager::Instance()->Get("SERVER"));
 	const char * buff = "echo check 1 check 2;";
 	server->Send(_server_net_id, buff, strlen(buff));
+	return true;
 }
 
 bool run_client()

@@ -20,7 +20,7 @@ public:
 	virtual void OnRegister(const std::shared_ptr<UnitManager> & mgr) { _mgr = mgr; }
 	virtual bool Init() { return true; }
 	virtual bool Start() { return true; }
-	virtual void Update(intvl_t interval) {}
+	virtual bool Update(intvl_t interval) { return false; }
 	virtual void Stop() {}
 	virtual void Release() { _mgr = nullptr; }
 

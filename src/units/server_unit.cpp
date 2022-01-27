@@ -36,14 +36,17 @@ bool ServerUnit::Start()
 	return true;
 }
 
-void ServerUnit::Update(intvl_t interval)
+bool ServerUnit::Update(intvl_t interval)
 {
+	auto busy = false;
 	NETID net_id;
 	uint16_t size;
 	while(_Recv(net_id, _recv_buffer, size))
 	{
 		_on_recv(net_id, _recv_buffer, size);
+		busy = true;
 	}
+	return busy;
 }
 
 void ServerUnit::Stop()
@@ -121,7 +124,7 @@ asio::awaitable<void> ServerUnit::_IoUpdate()
 	{
 		while(true)
 		{
-			auto idle = true;
+			auto busy = false;
 
 			while(!_send_queue.Empty())
 			{
@@ -139,13 +142,13 @@ asio::awaitable<void> ServerUnit::_IoUpdate()
 
 				co_await _peers[header.data16]->Send(_send_buffer, header.size);
 
-				idle = false;
+				busy = false;
 			}
 
-			intvl_t interval = 0;
-			if(idle)
+			intvl_t interval = _io_interval;
+			if(busy)
 			{
-				interval = _io_interval;
+				interval = 0;
 			}
 
 			_timer.expires_after(ms_t(interval));

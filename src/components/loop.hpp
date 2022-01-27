@@ -14,7 +14,7 @@ NAMESPACE_OPEN
 class Loop
 {
 public:
-	using UpdateFunc = std::function<void(intvl_t)>;
+	using UpdateFunc = std::function<bool(intvl_t)>;
 
 	Loop() = default;
 	~Loop() = default;
@@ -28,17 +28,18 @@ public:
 
 	void Run()
 	{
-		auto start = StdNow();
-		auto now = start;
-		auto interval = Ns2Ms(now - start);
+		auto now = StdNow();
+		auto last = now;
+		auto interval = Ns2Ms(now - last);
+		auto busy = false;
 		while (!_exit)
 		{
+			last = now;
 			now = StdNow();
-			interval = Ns2Ms(now - start);
-			if (interval >= _interval)
+			interval = Ns2Ms(now - last);
+			if (interval >= _interval || busy)
 			{
-				start = now;
-				_update(interval);
+				busy = _update(interval);
 			}
 			else
 			{

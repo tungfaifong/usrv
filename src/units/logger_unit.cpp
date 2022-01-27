@@ -51,7 +51,7 @@ void LoggerUnit::_Init()
 	_logger->set_pattern("[%Y-%m-%d %H:%M:%S.%f] [%^%l%$] %v");
 	
 	_loop.Init(_mgr->Interval(), [self = shared_from_this()](intvl_t interval){
-		self->_LogUpdate(interval);
+		return self->_LogUpdate(interval);
 	});
 	_log_thread = std::thread([self = shared_from_this()](){
 		self->_LogStart();
@@ -63,8 +63,9 @@ void LoggerUnit::_LogStart()
 	_loop.Run();
 }
 
-void LoggerUnit::_LogUpdate(intvl_t interval)
+bool LoggerUnit::_LogUpdate(intvl_t interval)
 {
+	auto busy = false;
 	for(auto & q : _log_queues)
 	{
 		while(!q.second->Empty())
@@ -77,9 +78,11 @@ void LoggerUnit::_LogUpdate(intvl_t interval)
 			}
 
 			_RealLog((Level)header.data16, _log_buffer, header.size);
+
+			busy = true;
 		}
 	}
-	
+	return busy;
 }
 
 void LoggerUnit::_RealLog(Level level, const char * log, uint16_t size)

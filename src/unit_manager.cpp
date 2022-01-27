@@ -14,7 +14,7 @@ NAMESPACE_OPEN
 void UnitManager::Init(intvl_t interval)
 {
 	_loop.Init(interval, [self = shared_from_this()](intvl_t interval){
-		self->_Update(interval);
+		return self->_Update(interval);
 	});
 }
 
@@ -104,12 +104,17 @@ bool UnitManager::_Start()
 	return true;
 }
 
-void UnitManager::_Update(intvl_t interval)
+bool UnitManager::_Update(intvl_t interval)
 {
+	auto busy = false;
 	for (auto & unit : _units)
 	{
-		unit.second->Update(interval);
+		if(unit.second->Update(interval))
+		{
+			busy = true;
+		}
 	}
+	return busy;
 }
 
 void UnitManager::_Stop()

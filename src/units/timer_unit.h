@@ -43,7 +43,7 @@ public:
 	TimerUnit(size_t tp_alloc_num, size_t ts_alloc_num);
 	virtual ~TimerUnit() = default;
 
-	virtual void Update(intvl_t interval) override final;
+	virtual bool Update(intvl_t interval) override final;
 
 public:
 	TIMERID CreateTimer(intvl_t time, std::function<void()> && callback);

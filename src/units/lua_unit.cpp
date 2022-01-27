@@ -54,16 +54,18 @@ bool LuaUnit::Start()
 	return success;
 }
 
-void LuaUnit::Update(intvl_t interval)
+bool LuaUnit::Update(intvl_t interval)
 {
+	auto busy = true;
 	try
 	{
-		(*_update)(interval);
+		busy = (*_update)(interval);
 	}
 	catch(const luabridge::LuaException & e)
 	{
 		OnException(e);
 	}
+	return busy;
 }
 
 void LuaUnit::Stop()

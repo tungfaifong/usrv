@@ -22,7 +22,7 @@ public:
 
 	virtual bool Init() override final;
 	virtual bool Start() override final;
-	virtual void Update(intvl_t interval) override final;
+	virtual bool Update(intvl_t interval) override final;
 	virtual void Stop() override final;
 	virtual void Release() override final;
 

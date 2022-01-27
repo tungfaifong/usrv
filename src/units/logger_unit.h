@@ -45,7 +45,7 @@ public:
 private:
 	void _Init();
 	void _LogStart();
-	void _LogUpdate(intvl_t interval);
+	bool _LogUpdate(intvl_t interval);
 	void _RealLog(Level level, const char * log, uint16_t size);
 
 private:
