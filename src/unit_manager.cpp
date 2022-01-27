@@ -109,10 +109,7 @@ bool UnitManager::_Update(intvl_t interval)
 	auto busy = false;
 	for (auto & unit : _units)
 	{
-		if(unit.second->Update(interval))
-		{
-			busy = true;
-		}
+		busy |= unit.second->Update(interval);
 	}
 	return busy;
 }

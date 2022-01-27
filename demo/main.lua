@@ -8,6 +8,7 @@ end
 
 function Update(interval)
 	logger.debug("call lua Update interval:" .. interval)
+	return false
 end
 
 function Stop()
