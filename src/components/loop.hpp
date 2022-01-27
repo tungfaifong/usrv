@@ -31,14 +31,14 @@ public:
 		auto now = StdNow();
 		auto last = now;
 		auto interval = Ns2Ms(now - last);
-		auto busy = false;
+		auto busy = true;
 		while (!_exit)
 		{
-			last = now;
 			now = StdNow();
 			interval = Ns2Ms(now - last);
 			if (interval >= _interval || busy)
 			{
+				last = now;
 				busy = _update(interval);
 			}
 			else
