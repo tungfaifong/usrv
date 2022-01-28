@@ -122,43 +122,37 @@ asio::awaitable<void> ServerUnit::_IoUpdate()
 {
 	try
 	{
-		auto now = StdNow();
-		auto last = now;
-		auto interval = Ns2Ms(now - last);
+		auto start = StdNow();
+		auto end = start;
 		auto busy = true;
 		while(true)
 		{
-			now = StdNow();
-			interval = Ns2Ms(now - last);
-			if (interval >= _io_interval || busy)
+			start = StdNow();
+			busy = false;
+			while(!_send_queue.Empty())
 			{
-				last = now;
-				busy = false;
-				while(!_send_queue.Empty())
+				SpscQueue::Header header;
+
+				if(!_send_queue.TryPop(_send_buffer, header))
 				{
-					SpscQueue::Header header;
-
-					if(!_send_queue.TryPop(_send_buffer, header))
-					{
-						continue;
-					}
-
-					if(!_peers.Find(header.data16))
-					{
-						continue;
-					}
-
-					co_await _peers[header.data16]->Send(_send_buffer, header.size);
-
-					busy = true;
+					continue;
 				}
+
+				if(!_peers.Find(header.data16))
+				{
+					continue;
+				}
+
+				co_await _peers[header.data16]->Send(_send_buffer, header.size);
+
+				busy = true;
 			}
-			else
-			{
-				_timer.expires_after(ms_t(_io_interval - interval));
-				std::error_code ec;
-				co_await _timer.async_wait(redirect_error(asio::use_awaitable, ec));
-			}
+			end = StdNow();
+			auto interval = Ns2Ms(end - start);
+			interval = _io_interval > interval ? _io_interval - interval : 0;
+			_timer.expires_after(ms_t(busy ? 0 : interval));
+			std::error_code ec;
+			co_await _timer.async_wait(redirect_error(asio::use_awaitable, ec));
 		}
 	}
 	catch(const std::system_error & e)
