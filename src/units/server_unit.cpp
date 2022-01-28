@@ -245,7 +245,7 @@ void Peer::Stop()
 			{
 				LOGGER_ERROR("Peer::Stop shutdown error:{}", ec.message());
 			}
-			_socket->close();
+			_socket->close(ec);
 		}
 		_net_id = INVALID_NET_ID;
 		_socket = nullptr;
@@ -279,18 +279,19 @@ asio::awaitable<void> Peer::_Recv()
 {
 	try
 	{
-		while(true)
+		while(_socket)
 		{
-			uint16_t body_size = 0;
-			co_await asio::async_read(*_socket, asio::buffer(&body_size, MESSAGE_HEAD_SIZE), asio::use_awaitable);
-			co_await asio::async_read(*_socket, asio::buffer(_recv_buffer, body_size), asio::use_awaitable);
-
 			SpscQueue::Header header;
-			header.size = body_size;
+			header.size = 0;
 			header.data16 = _net_id;
 			header.data32 = 0;
+			auto server = _server;
 
-			_server->_recv_queue.Push(_recv_buffer, header);
+			co_await asio::async_read(*_socket, asio::buffer(&header.size, MESSAGE_HEAD_SIZE), asio::use_awaitable);
+			if(!_socket) break;
+			co_await asio::async_read(*_socket, asio::buffer(_recv_buffer, header.size), asio::use_awaitable);
+
+			server->_recv_queue.Push(_recv_buffer, header);
 		}
 	}
 	catch (const std::system_error & e)

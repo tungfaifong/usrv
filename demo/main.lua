@@ -7,7 +7,6 @@ function Start()
 end
 
 function Update(interval)
-	logger.debug("call lua Update interval:" .. interval)
 	return false
 end
 
@@ -16,6 +15,6 @@ function Stop()
 end
 
 function OnRecv(net_id, data)
-	logger.debug("OnRecv net_id:" .. net_id .. " data:" .. data)
+	-- logger.debug("OnRecv net_id:" .. net_id .. " data:" .. data)
 	server.Send(net_id, data, string.len(data))
 end
