@@ -41,10 +41,12 @@ bool ServerUnit::Update(intvl_t interval)
 	auto busy = false;
 	NETID net_id;
 	uint16_t size;
+	auto cnt = 0;
 	while(_Recv(net_id, _recv_buffer, size))
 	{
 		_on_recv(net_id, _recv_buffer, size);
 		busy = true;
+		if(++cnt >= OPF) break;
 	}
 	return busy;
 }
@@ -129,6 +131,7 @@ asio::awaitable<void> ServerUnit::_IoUpdate()
 		{
 			start = StdNow();
 			busy = false;
+			auto cnt = 0;
 			while(!_send_queue.Empty())
 			{
 				SpscQueue::Header header;
@@ -146,6 +149,8 @@ asio::awaitable<void> ServerUnit::_IoUpdate()
 				co_await _peers[header.data16]->Send(_send_buffer, header.size);
 
 				busy = true;
+
+				if(++cnt >= OPF) break;
 			}
 			end = StdNow();
 			auto interval = Ns2Ms(end - start);

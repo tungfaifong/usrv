@@ -19,6 +19,8 @@ class Peer;
 class ServerUnit : public Unit, public std::enable_shared_from_this<ServerUnit>
 {
 public:
+	static constexpr uint16_t OPF = 1024;	// operation per frame
+
 	using OnRecvFunc = std::function<void(NETID, char *, uint16_t)>;
 
 	ServerUnit(size_t pp_alloc_num, size_t ps_alloc_num, size_t spsc_blk_num);
