@@ -156,12 +156,12 @@ asio::awaitable<void> ServerUnit::_IoUpdate()
 			else
 			{
 				_timer.expires_after(ms_t(_io_interval - interval));
-				asio::error_code ec;
+				std::error_code ec;
 				co_await _timer.async_wait(redirect_error(asio::use_awaitable, ec));
 			}
 		}
 	}
-	catch(const std::exception & e)
+	catch(const std::system_error & e)
 	{
 		LOGGER_ERROR("ServerUnit::_IoUpdate error:{}", e.what());
 	}
@@ -178,7 +178,7 @@ asio::awaitable<void> ServerUnit::_IoListen(PORT port)
 			_IoAddPeer(std::move(socket));
 		}
 	}
-	catch(const std::exception & e)
+	catch(const std::system_error & e)
 	{
 		LOGGER_ERROR("ServerUnit::_IoListen error:{}", e.what());
 	}
@@ -195,7 +195,7 @@ asio::awaitable<void> ServerUnit::_IoConnect(const IP & ip, PORT port, std::prom
 		auto net_id = _IoAddPeer(std::move(socket));
 		promise_net_id.set_value(net_id);
 	}
-	catch(const std::exception & e)
+	catch(const std::system_error & e)
 	{
 		LOGGER_ERROR("ServerUnit::_IoConnect error:{}", e.what());
 	}
@@ -235,14 +235,26 @@ void Peer::Start(NETID net_id, asio::ip::tcp::socket && socket, const std::share
 
 void Peer::Stop()
 {
-	if(_socket->is_open())
+	try
 	{
-		_socket->shutdown(asio::ip::tcp::socket::shutdown_both);
-		_socket->close();
+		if(_socket->is_open())
+		{
+			std::error_code ec;
+			_socket->shutdown(asio::ip::tcp::socket::shutdown_both, ec);
+			if(ec && ec != asio::error::not_connected)
+			{
+				LOGGER_ERROR("Peer::Stop shutdown error:{}", ec.message());
+			}
+			_socket->close();
+		}
+		_net_id = INVALID_NET_ID;
+		_socket = nullptr;
+		_server = nullptr;
 	}
-	_net_id = INVALID_NET_ID;
-	_socket = nullptr;
-	_server = nullptr;
+	catch(const std::system_error& e)
+	{
+		LOGGER_ERROR("Peer::Stop error:{}", e.what());
+	}
 }
 
 asio::awaitable<void> Peer::Send(const char * data, uint16_t size)
@@ -253,8 +265,12 @@ asio::awaitable<void> Peer::Send(const char * data, uint16_t size)
 		memcpy(_send_buffer + MESSAGE_HEAD_SIZE, data, size);
 		co_await asio::async_write(*_socket, asio::buffer(_send_buffer, MESSAGE_HEAD_SIZE + size), asio::use_awaitable);
 	}
-	catch (const std::exception & e)
+	catch (const std::system_error & e)
 	{
+		if(e.code() != asio::error::eof && e.code() != asio::error::connection_reset)
+		{
+			LOGGER_ERROR("Peer::Send error:{}", e.what());
+		}
 		_server->_IoDisconnect(_net_id);
 	}
 }
@@ -277,8 +293,12 @@ asio::awaitable<void> Peer::_Recv()
 			_server->_recv_queue.Push(_recv_buffer, header);
 		}
 	}
-	catch (const std::exception & e)
+	catch (const std::system_error & e)
 	{
+		if(e.code() != asio::error::eof && e.code() != asio::error::connection_reset)
+		{
+			LOGGER_ERROR("Peer::_Recv error:{}", e.what());
+		}
 		_server->_IoDisconnect(_net_id);
 	}
 }
