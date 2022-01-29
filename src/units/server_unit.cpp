@@ -93,7 +93,7 @@ bool ServerUnit::Send(NETID net_id, const char * data, uint16_t size)
 	return true;
 }
 
-void ServerUnit::Recv(OnRecvFunc func)
+void ServerUnit::OnRecv(OnRecvFunc func)
 {
 	_on_recv = func;
 }
@@ -210,6 +210,16 @@ void ServerUnit::_IoDisconnect(NETID net_id)
 	_IoDelPeer(net_id);
 }
 
+void ServerUnit::_IoRecv(NETID net_id, const char * data, uint16_t size)
+{
+	SpscQueue::Header header;
+	header.size = size;
+	header.data16 = net_id;
+	header.data32 = 0;
+
+	_recv_queue.Push(data, header);
+}
+
 NETID ServerUnit::_IoAddPeer(asio::ip::tcp::socket && socket)
 {
 	auto net_id = _peers.Insert(std::move(_peer_pool.Get()));
@@ -280,17 +290,15 @@ asio::awaitable<void> Peer::_Recv()
 	{
 		while(_socket)
 		{
-			SpscQueue::Header header;
-			header.size = 0;
-			header.data16 = _net_id;
-			header.data32 = 0;
+			auto net_id = _net_id;
+			uint16_t body_size = 0;
 			auto server = _server;
 
-			co_await asio::async_read(*_socket, asio::buffer(&header.size, MESSAGE_HEAD_SIZE), asio::use_awaitable);
+			co_await asio::async_read(*_socket, asio::buffer(&body_size, MESSAGE_HEAD_SIZE), asio::use_awaitable);
 			if(!_socket) break;
-			co_await asio::async_read(*_socket, asio::buffer(_recv_buffer, header.size), asio::use_awaitable);
+			co_await asio::async_read(*_socket, asio::buffer(_recv_buffer, body_size), asio::use_awaitable);
 
-			server->_recv_queue.Push(_recv_buffer, header);
+			server->_IoRecv(net_id, _recv_buffer, body_size);
 		}
 	}
 	catch (const std::system_error & e)

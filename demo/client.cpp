@@ -48,7 +48,7 @@ bool run_client()
 	auto server = std::dynamic_pointer_cast<ServerUnit>(UnitManager::Instance()->Get("SERVER"));
 	auto game = std::dynamic_pointer_cast<Client>(UnitManager::Instance()->Get("CLIENT"));
 
-	server->Recv([](NETID net_id, char * data, uint16_t size) {
+	server->OnRecv([](NETID net_id, char * data, uint16_t size) {
 		LOGGER_INFO("recv: net_id:{} data:{}", net_id, std::string(data, size));
 	});
 

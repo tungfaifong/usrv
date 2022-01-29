@@ -36,7 +36,7 @@ public:
 	NETID Connect(const IP & ip, PORT port, uint32_t timeout);
 	void Disconnect(NETID net_id);
 	bool Send(NETID net_id, const char * data, uint16_t size);
-	void Recv(OnRecvFunc func);
+	void OnRecv(OnRecvFunc func);
 
 private:
 	bool _Recv(NETID & net_id, char * data, uint16_t & size);
@@ -45,6 +45,7 @@ private:
 	asio::awaitable<void> _IoListen(PORT port);
 	asio::awaitable<void> _IoConnect(const IP & ip, PORT port, std::promise<NETID> & promise_net_id);
 	void _IoDisconnect(NETID net_id);
+	void _IoRecv(NETID net_id, const char * data, uint16_t size);
 	NETID _IoAddPeer(asio::ip::tcp::socket && socket);
 	void _IoDelPeer(NETID net_id);
 
