@@ -25,7 +25,7 @@ bool run_server(intvl_t interval)
 	UnitManager::Instance()->Register("LOGGER", std::move(std::make_shared<LoggerUnit>(LoggerUnit::Level::TRACE, "/logs/server.log", 1 Mi)));
 	UnitManager::Instance()->Register("SERVER", std::move(std::make_shared<ServerUnit>(1 Ki, 1 Ki, 1 Mi)));
 	UnitManager::Instance()->Register("TIMER", std::move(std::make_shared<TimerUnit>(1 Ki, 1 Ki)));
-	UnitManager::Instance()->Register("LUA", std::move(std::make_shared<LuaUnit>(usrv::PATH_ROOT + "/demo/main.lua")));
+	UnitManager::Instance()->Register("LUA", std::move(std::make_shared<LuaUnit>(usrv::PATH_ROOT + "/main.lua")));
 
 	auto server = std::dynamic_pointer_cast<ServerUnit>(UnitManager::Instance()->Get("SERVER"));
 	server->Listen(6666);
