@@ -90,3 +90,5 @@ install:
 clean:
 	@rm -rf $(PATH_BUILD)
 	@echo clean all....
+
+.PHONY: all install clean
