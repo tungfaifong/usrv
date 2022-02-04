@@ -10,9 +10,9 @@ endif
 # path
 PATH_ROOT = ..
 PATH_3RDPARTY = $(PATH_ROOT)/3rdparty
-PATH_BUILD := out
+PATH_BUILD = out
 
-TARGET := $(PATH_BUILD)/main
+TARGET = $(PATH_BUILD)/main
 SUB_DIR = src src/interfaces src/units src/util demo
 
 # include
@@ -21,17 +21,17 @@ INC_FMT = -I$(PATH_3RDPARTY)/fmt-8.1.0/include
 INC_LUA = -I$(PATH_3RDPARTY)/lua-5.4.3/include
 INC_LUA_BRIDGE = -I$(PATH_3RDPARTY)/LuaBridge-2.7
 INC_SPDLOG = -I$(PATH_3RDPARTY)/spdlog-1.9.2
-INC_ALL := -I$(PATH_ROOT)/src $(INC_ASIO) $(INC_FMT) $(INC_LUA) $(INC_LUA_BRIDGE) $(INC_SPDLOG)
+INC_ALL = -I$(PATH_ROOT)/src $(INC_ASIO) $(INC_FMT) $(INC_LUA) $(INC_LUA_BRIDGE) $(INC_SPDLOG)
 
 # lib
 LIB_FMT = -L$(PATH_3RDPARTY)/fmt-8.1.0/lib -lfmt
 LIB_LUA = -L$(PATH_3RDPARTY)/lua-5.4.3/lib -llua
-LIB_ALL := $(LIB_FMT) $(LIB_LUA)
+LIB_ALL = $(LIB_FMT) $(LIB_LUA)
 
-LINK_FLAGS := $(LIB_ALL) -lpthread -ldl
+LINK_FLAGS = $(LIB_ALL) -lpthread -ldl
 
 # define
-DEFINE_SPDLOG := -DSPDLOG_FMT_EXTERNAL
+DEFINE_SPDLOG = -DSPDLOG_FMT_EXTERNAL
 DEFINE += $(DEFINE_SPDLOG)
 
 $(shell if [ ! -e $(PATH_BUILD) ];then mkdir -p $(PATH_BUILD); fi)
