@@ -19,12 +19,6 @@ bool ServerUnit::Init()
 {
 	_io_interval = _mgr->Interval();
 
-	if(!_on_recv)
-	{
-		LOGGER_ERROR("ServerUnit::Start error: no _on_recv, please call Recv(OnRecvFunc func)");
-		return false;
-	}
-
 	_io_thread = std::thread([self = shared_from_this()](){
 		self->_io_context.run();
 	});
@@ -34,6 +28,12 @@ bool ServerUnit::Init()
 
 bool ServerUnit::Start()
 {
+	if(!_on_recv)
+	{
+		LOGGER_ERROR("ServerUnit::Start error: no _on_recv, please call Recv(OnRecvFunc func)");
+		return false;
+	}
+
 	asio::post(_io_context, [self = shared_from_this()](){
 		self->_IoStart();
 	});
