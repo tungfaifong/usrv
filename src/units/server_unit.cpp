@@ -18,11 +18,7 @@ ServerUnit::ServerUnit(size_t pp_alloc_num, size_t ps_alloc_num, size_t spsc_blk
 bool ServerUnit::Init()
 {
 	_io_interval = _mgr->Interval();
-	return true;
-}
 
-bool ServerUnit::Start()
-{
 	if(!_on_recv)
 	{
 		LOGGER_ERROR("ServerUnit::Start error: no _on_recv, please call Recv(OnRecvFunc func)");
@@ -30,6 +26,15 @@ bool ServerUnit::Start()
 	}
 
 	_io_thread = std::thread([self = shared_from_this()](){
+		self->_io_context.run();
+	});
+
+	return true;
+}
+
+bool ServerUnit::Start()
+{
+	asio::post(_io_context, [self = shared_from_this()](){
 		self->_IoStart();
 	});
 
@@ -122,8 +127,6 @@ bool ServerUnit::_Recv(NETID & net_id, char * data, uint16_t & size)
 void ServerUnit::_IoStart()
 {
 	asio::co_spawn(_io_context, _IoUpdate(), asio::detached);
-
-	_io_context.run();
 }
 
 asio::awaitable<void> ServerUnit::_IoUpdate()
