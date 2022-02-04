@@ -7,7 +7,7 @@ CXX_FLAGS = -Wall -fdiagnostics-color=always -g -std=c++20 -O2
 # path
 PATH_BUILD = out
 PATH_INSTALL = out/install
-PATH_INSTALL_INCLUDE = $(PATH_INSTALL)/include
+PATH_INSTALL_INCLUDE = $(PATH_INSTALL)/include/usrv
 PATH_INSTALL_LIB = $(PATH_INSTALL)/lib
 PATH_3RDPARTY = ./3rdparty
 
