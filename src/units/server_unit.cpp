@@ -57,6 +57,12 @@ void ServerUnit::Stop()
 	_io_thread.join();
 }
 
+void ServerUnit::Release()
+{
+	_on_recv = nullptr;
+	Unit::Release();
+}
+
 void ServerUnit::Listen(PORT port)
 {
 	asio::co_spawn(_io_context, _IoListen(port), asio::detached);
