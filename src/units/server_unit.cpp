@@ -109,6 +109,11 @@ void ServerUnit::OnRecv(OnRecvFunc func)
 	_on_recv = func;
 }
 
+size_t ServerUnit::PeersNum()
+{
+	return _peers.Size();
+}
+
 bool ServerUnit::_Recv(NETID & net_id, char * data, uint16_t & size)
 {
 	SpscQueue::Header header;
