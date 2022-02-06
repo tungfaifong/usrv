@@ -28,9 +28,21 @@ bool ServerUnit::Init()
 
 bool ServerUnit::Start()
 {
+	if(!_on_conn)
+	{
+		LOGGER_ERROR("ServerUnit::Start error: no _on_conn, please call OnConn(OnConnFunc func)");
+		return false;
+	}
+
 	if(!_on_recv)
 	{
-		LOGGER_ERROR("ServerUnit::Start error: no _on_recv, please call Recv(OnRecvFunc func)");
+		LOGGER_ERROR("ServerUnit::Start error: no _on_recv, please call OnRecv(OnRecvFunc func)");
+		return false;
+	}
+	
+	if(!_on_disc)
+	{
+		LOGGER_ERROR("ServerUnit::Start error: no _on_disc, please call OnDisc(OnDiscFunc func)");
 		return false;
 	}
 
@@ -45,11 +57,34 @@ bool ServerUnit::Update(intvl_t interval)
 {
 	auto busy = false;
 	NETID net_id;
+	MSGTYPE msg_type;
 	uint16_t size;
 	auto cnt = 0;
-	while(_Recv(net_id, _recv_buffer, size))
+	while(_Recv(net_id, msg_type, _recv_buffer, size))
 	{
-		_on_recv(net_id, _recv_buffer, size);
+		switch(msg_type)
+		{
+			case MSGT_CONN:
+			{
+				uint8_t ip_len = 0;
+				memcpy(&ip_len, _recv_buffer, IP_LEN_SIZE);
+				auto ip = std::string(_recv_buffer + IP_LEN_SIZE, ip_len);
+				PORT port = 0;
+				memcpy(&port, _recv_buffer + IP_LEN_SIZE + IP_SIZE, PORT_SIZE);
+				_on_conn(net_id, std::move(ip), port);
+			}
+			break;
+			case MSGT_RECV:
+			{
+				_on_recv(net_id, _recv_buffer, size);
+			}
+			break;
+			case MSGT_DISC:
+			{
+				_on_disc(net_id);
+			}
+			break;
+		}
 		busy = true;
 		if(++cnt >= OPF) break;
 	}
@@ -64,7 +99,9 @@ void ServerUnit::Stop()
 
 void ServerUnit::Release()
 {
+	_on_conn = nullptr;
 	_on_recv = nullptr;
+	_on_disc = nullptr;
 	Unit::Release();
 }
 
@@ -77,7 +114,7 @@ NETID ServerUnit::Connect(const IP & ip, PORT port, uint32_t timeout)
 {
 	std::promise<NETID> promise_net_id;
 	auto future_net_id = promise_net_id.get_future();
-	asio::co_spawn(_io_context, _IoConnect(ip, port, promise_net_id), asio::detached);
+	asio::co_spawn(_io_context, _IoConnect(ip, port, std::move(promise_net_id)), asio::detached);
 	if(future_net_id.wait_for(ms_t(timeout)) != std::future_status::ready)
 	{
 		return INVALID_NET_ID;
@@ -104,17 +141,32 @@ bool ServerUnit::Send(NETID net_id, const char * data, uint16_t size)
 	return true;
 }
 
+void ServerUnit::OnConn(OnConnFunc func)
+{
+	_on_conn = func;
+}
+
 void ServerUnit::OnRecv(OnRecvFunc func)
 {
 	_on_recv = func;
 }
 
-size_t ServerUnit::PeersNum()
+void ServerUnit::OnDisc(OnDiscFunc func)
 {
-	return _peers.Size();
+	_on_disc = func;
 }
 
-bool ServerUnit::_Recv(NETID & net_id, char * data, uint16_t & size)
+size_t ServerUnit::PeersNum()
+{
+	std::promise<size_t> promise_num;
+	auto future_num = promise_num.get_future();
+	asio::post(_io_context, [self = shared_from_this(), &promise_num](){
+		promise_num.set_value(self->_peers.Size());
+	});
+	return future_num.get();
+}
+
+bool ServerUnit::_Recv(NETID & net_id, MSGTYPE & msg_type, char * data, uint16_t & size)
 {
 	SpscQueue::Header header;
 
@@ -125,6 +177,7 @@ bool ServerUnit::_Recv(NETID & net_id, char * data, uint16_t & size)
 
 	size = header.size;
 	net_id = header.data16;
+	msg_type = (MSGTYPE)header.data32;
 
 	return true;
 }
@@ -197,7 +250,7 @@ asio::awaitable<void> ServerUnit::_IoListen(PORT port)
 	}
 }
 
-asio::awaitable<void> ServerUnit::_IoConnect(const IP & ip, PORT port, std::promise<NETID> & promise_net_id)
+asio::awaitable<void> ServerUnit::_IoConnect(const IP & ip, PORT port, std::promise<NETID> && promise_net_id)
 {
 	try
 	{
@@ -229,15 +282,30 @@ void ServerUnit::_IoRecv(NETID net_id, const char * data, uint16_t size)
 	SpscQueue::Header header;
 	header.size = size;
 	header.data16 = net_id;
-	header.data32 = 0;
-
+	header.data32 = MSGT_RECV;
 	_recv_queue.Push(data, header);
 }
 
 NETID ServerUnit::_IoAddPeer(asio::ip::tcp::socket && socket)
 {
 	auto net_id = _peers.Insert(std::move(_peer_pool.Get()));
-	_peers[net_id]->Start(net_id, std::move(socket), shared_from_this());
+	auto peer = _peers[net_id];
+	peer->Start(net_id, std::move(socket), shared_from_this());
+
+	auto ip = peer->Ip();
+	auto ip_len = (uint8_t)ip.size();
+	auto port = peer->Port();
+
+	memcpy(_conn_buffer, &ip_len, IP_LEN_SIZE);
+	memcpy(_conn_buffer + IP_LEN_SIZE, ip.c_str(), IP_SIZE);
+	memcpy(_conn_buffer + IP_LEN_SIZE + IP_SIZE, &port, PORT_SIZE);
+
+	SpscQueue::Header header;
+	header.size = CONN_BUFFER_SIZE;
+	header.data16 = net_id;
+	header.data32 = MSGT_CONN;
+	_recv_queue.Push(_conn_buffer, header);
+
 	return net_id;
 }
 
@@ -245,6 +313,12 @@ void ServerUnit::_IoDelPeer(NETID net_id)
 {
 	_peer_pool.Put(std::move(_peers[net_id]));
 	_peers.Erase(net_id);
+
+	SpscQueue::Header header;
+	header.size = 0;
+	header.data16 = net_id;
+	header.data32 = MSGT_DISC;
+	_recv_queue.Push("", header);
 }
 
 // Peer
@@ -296,6 +370,16 @@ asio::awaitable<void> Peer::Send(const char * data, uint16_t size)
 		}
 		_server->_IoDisconnect(_net_id);
 	}
+}
+
+IP Peer::Ip()
+{
+	return _socket->remote_endpoint().address().to_string();
+}
+
+PORT Peer::Port()
+{
+	return _socket->remote_endpoint().port();
 }
 
 asio::awaitable<void> Peer::_Recv()

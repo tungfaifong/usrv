@@ -32,8 +32,16 @@ bool run_server(intvl_t interval)
 
 	auto lua = std::dynamic_pointer_cast<LuaUnit>(UnitManager::Instance()->Get("LUA"));
 
+	server->OnConn([&lua](NETID net_id, IP ip, PORT port) {
+		lua->OnConn(net_id, ip, port);
+	});
+
 	server->OnRecv([&lua](NETID net_id, char * data, uint16_t size) {
-		lua->OnRecvFunc(net_id, data, size);
+		lua->OnRecv(net_id, data, size);
+	});
+
+	server->OnDisc([&lua](NETID net_id) {
+		lua->OnDisc(net_id);
 	});
 
 	UnitManager::Instance()->Run();

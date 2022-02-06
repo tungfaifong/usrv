@@ -9,7 +9,7 @@
 NAMESPACE_OPEN
 
 LuaUnit::LuaUnit(const std::string & file, ExposeFunc func) : _file(file), _lua_state(luaL_newstate()),
-	_start(nullptr), _update(nullptr), _stop(nullptr), _on_recv(nullptr), _expose(func)
+	_start(nullptr), _update(nullptr), _stop(nullptr), _on_conn(nullptr), _on_recv(nullptr), _on_disc(nullptr), _expose(func)
 {
 	
 }
@@ -24,7 +24,8 @@ bool LuaUnit::Init()
 		return false;
 	}
 
-	if (!_InitFunc(_start, "Start") || !_InitFunc(_update, "Update") || !_InitFunc(_stop, "Stop") || !_InitFunc(_on_recv, "OnRecv"))
+	if (!_InitFunc(_start, "Start") || !_InitFunc(_update, "Update") || !_InitFunc(_stop, "Stop") ||
+		!_InitFunc(_on_conn, "OnConn") || !_InitFunc(_on_recv, "OnRecv") || !_InitFunc(_on_disc, "OnDisc"))
 	{
 		LOGGER_ERROR("LuaUnit::Init error: _InitFunc filed.");
 		return false;
@@ -85,7 +86,9 @@ void LuaUnit::Release()
 	_start = nullptr;
 	_update = nullptr;
 	_stop = nullptr;
+	_on_conn = nullptr;
 	_on_recv = nullptr;
+	_on_disc = nullptr;
 	lua_close(_lua_state);
 	Unit::Release();
 }
@@ -100,11 +103,35 @@ luabridge::Namespace LuaUnit::GetGlobalNamespace()
 	return luabridge::getGlobalNamespace(_lua_state);
 }
 
-void LuaUnit::OnRecvFunc(NETID net_id, char * data, uint16_t size)
+void LuaUnit::OnConn(NETID net_id, const IP & ip, PORT port)
+{
+	try
+	{
+		(*_on_conn)(net_id, ip, port);
+	}
+	catch(const luabridge::LuaException & e)
+	{
+		OnException(e);
+	}
+}
+
+void LuaUnit::OnRecv(NETID net_id, char * data, uint16_t size)
 {
 	try
 	{
 		(*_on_recv)(net_id, std::string(data, size));
+	}
+	catch(const luabridge::LuaException & e)
+	{
+		OnException(e);
+	}
+}
+
+void LuaUnit::OnDisc(NETID net_id)
+{
+	try
+	{
+		(*_on_disc)(net_id);
 	}
 	catch(const luabridge::LuaException & e)
 	{
