@@ -76,14 +76,14 @@ intvl_t UnitManager::Interval()
 
 bool UnitManager::_Init()
 {
-	for(auto & unit : _units)
+	for(auto & [key, unit] : _units)
 	{
-		if(!unit.second->Init())
+		if(!unit->Init())
 		{
-			LOGGER_ERROR("UnitManager::Init {} fail", unit.first);
+			LOGGER_ERROR("UnitManager::Init {} fail", key);
 			return false;
 		}
-		LOGGER_INFO("UnitManager::Init {} success", unit.first);
+		LOGGER_INFO("UnitManager::Init {} success", key);
 	}
 	LOGGER_INFO("UnitManager::Init All units success");
 	return true;
@@ -91,14 +91,14 @@ bool UnitManager::_Init()
 
 bool UnitManager::_Start()
 {
-	for (auto & unit : _units)
+	for (auto & [key, unit] : _units)
 	{
-		if (!unit.second->Start())
+		if (!unit->Start())
 		{
-			LOGGER_ERROR("UnitManager::_Start {} fail", unit.first);
+			LOGGER_ERROR("UnitManager::_Start {} fail", key);
 			return false;
 		}
-		LOGGER_INFO("UnitManager::_Start {} success", unit.first);
+		LOGGER_INFO("UnitManager::_Start {} success", key);
 	}
 	LOGGER_INFO("UnitManager::_Start All units success");
 	return true;
@@ -107,28 +107,28 @@ bool UnitManager::_Start()
 bool UnitManager::_Update(intvl_t interval)
 {
 	auto busy = false;
-	for (auto & unit : _units)
+	for (auto & [key, unit] : _units)
 	{
-		busy |= unit.second->Update(interval);
+		busy |= unit->Update(interval);
 	}
 	return busy;
 }
 
 void UnitManager::_Stop()
 {
-	for (auto & unit : _units)
+	for (auto & [key, unit] : _units)
 	{
-		unit.second->Stop();
-		LOGGER_INFO("UnitManager::_Stop {} success", unit.first);
+		unit->Stop();
+		LOGGER_INFO("UnitManager::_Stop {} success", key);
 	}
 	LOGGER_INFO("UnitManager::_Stop All units success");
 }
 
 void UnitManager::_Release()
 {
-	for(auto & unit : _units)
+	for(auto & [key, unit] : _units)
 	{
-		unit.second->Release();
+		unit->Release();
 	}
 }
 
