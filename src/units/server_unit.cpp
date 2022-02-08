@@ -20,7 +20,7 @@ bool ServerUnit::Init()
 	_io_interval = _mgr->Interval();
 
 	_io_thread = std::thread([self = shared_from_this()](){
-		self->_io_context.run();
+		self->_IoInit();
 	});
 
 	return true;
@@ -45,10 +45,6 @@ bool ServerUnit::Start()
 		LOGGER_ERROR("ServerUnit::Start error: no _on_disc, please call OnDisc(OnDiscFunc func)");
 		return false;
 	}
-
-	asio::post(_io_context, [self = shared_from_this()](){
-		self->_IoStart();
-	});
 
 	return true;
 }
@@ -182,9 +178,10 @@ bool ServerUnit::_Recv(NETID & net_id, MSGTYPE & msg_type, char * data, uint16_t
 	return true;
 }
 
-void ServerUnit::_IoStart()
+void ServerUnit::_IoInit()
 {
 	asio::co_spawn(_io_context, _IoUpdate(), asio::detached);
+	_io_context.run();
 }
 
 asio::awaitable<void> ServerUnit::_IoUpdate()
