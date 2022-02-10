@@ -66,6 +66,7 @@ INSTALL_UNITS = $(wildcard $(PATH_SRC)/$(PATH_UNITS)/*.h $(PATH_SRC)/$(PATH_UNIT
 INSTALL_UTIL = $(wildcard $(PATH_SRC)/$(PATH_UTIL)/*.h $(PATH_SRC)/$(PATH_UTIL)/*.hpp)
 
 all: $(PATH_BUILD)/$(TARGET)
+debug: $(PATH_BUILD)/$(TARGET)
 
 $(PATH_BUILD)/$(TARGET): $(OBJ_FILE)
 	$(AR) -o $@ $(OBJ_FILE)
@@ -91,4 +92,4 @@ clean:
 	@rm -rf $(PATH_BUILD)
 	@echo clean all....
 
-.PHONY: all install clean
+.PHONY: all install clean debug
