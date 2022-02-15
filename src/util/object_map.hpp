@@ -67,16 +67,16 @@ public:
 	size_t Insert(std::shared_ptr<T> && obj)
 	{
 		auto id = _indexs[_head];
-		if(!_objects[_begin].obj)
+		if(!_objects[_head_id].obj)
 		{
-			_begin = id;
+			_head_id = id;
 		}
+		if(_objects[_tail_id].obj)
+		{
+			_objects[id].prev = _tail_id;
+		}
+		_tail_id = id;
 		_objects[id].obj = std::move(obj);
-
-		if(_objects[_end].obj)
-		{
-			_objects[id].prev = _end;
-		}
 
 		_head = (_head + 1) % _objects.size();
 		if (_head == _tail)
@@ -84,8 +84,7 @@ public:
 			_Allocate();
 		}
 
-		_end = _indexs[_head];
-		_objects[id].next = _end;
+		_objects[id].next = _indexs[_head];
 
 		return id;
 	}
@@ -104,17 +103,17 @@ public:
 
 		auto prev_id = _objects[id].prev;
 		auto next_id = _objects[id].next;
-		if(id == _begin)
+		if(id == _head_id)
 		{
-			_begin = next_id;
+			_head_id = next_id;
 		}
 		else
 		{
 			_objects[prev_id].next = next_id;
 		}
-		if(id == _end)
+		if(id == _tail_id)
 		{
-			_end = id;
+			_tail_id = prev_id;
 		}
 		else
 		{
@@ -141,12 +140,12 @@ public:
 
 	Iterator begin()
 	{
-		return Iterator(*this, _begin);
+		return Iterator(*this, _head_id);
 	}
 
 	Iterator end()
 	{
-		return Iterator(*this, _end);
+		return Iterator(*this, _objects[_tail_id].next);
 	}
 
 private:
@@ -169,8 +168,8 @@ private:
 	size_t _head = 0;
 	size_t _tail = 0;
 	std::vector<size_t> _indexs;
-	size_t _begin = 0;
-	size_t _end = 0;
+	size_t _head_id = 0;
+	size_t _tail_id = 0;
 };
 
 NAMESPACE_CLOSE
