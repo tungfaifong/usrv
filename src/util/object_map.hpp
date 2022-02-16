@@ -13,15 +13,28 @@ template<typename T>
 class ObjectMap
 {
 public:
+	static constexpr size_t INVALID_ID = -1;
+
 	class Iterator
 	{
 		public:
 			Iterator(ObjectMap & map, size_t id):_map(map), _id(id) {}
 			~Iterator() = default;
 
-			const std::shared_ptr<T> & operator *() { return _map._objects[_id].obj; }
-			Iterator & operator ++() { _id = _map._objects[_id].next; return *this; }
+			void operator=(const Iterator & iter)
+			{ 
+				_map = iter._map;
+				_id = iter._id;
+			}
+			auto operator *() { return std::pair<size_t, const std::shared_ptr<T> &>(_id, _map._objects[_id].obj); }
+			Iterator & operator ++()
+			{
+				_id = _map._objects[_id].next;
+				return *this; 
+			}
 			bool operator !=(const Iterator & iter) { return _id != iter._id; }
+
+			size_t ID() { return _id; }
 
 		private:
 			ObjectMap & _map;
@@ -31,14 +44,14 @@ public:
 	struct Node
 	{
 		std::shared_ptr<T> obj = nullptr;
-		size_t prev = 0;
-		size_t next = 0;
+		size_t prev = INVALID_ID;
+		size_t next = INVALID_ID;
 
 		void Reset()
 		{
 			obj = nullptr;
-			prev = 0;
-			next = 0;
+			prev = INVALID_ID;
+			next = INVALID_ID;
 		}
 	};
 
@@ -67,12 +80,13 @@ public:
 	size_t Insert(std::shared_ptr<T> && obj)
 	{
 		auto id = _indexs[_head];
-		if(!_objects[_head_id].obj)
+		if(_head_id == INVALID_ID)
 		{
 			_head_id = id;
 		}
-		if(_objects[_tail_id].obj)
+		if(_tail_id != INVALID_ID)
 		{
+			_objects[_tail_id].next = id;
 			_objects[id].prev = _tail_id;
 		}
 		_tail_id = id;
@@ -83,8 +97,6 @@ public:
 		{
 			_Allocate();
 		}
-
-		_objects[id].next = _indexs[_head];
 
 		return id;
 	}
@@ -106,23 +118,45 @@ public:
 		if(id == _head_id)
 		{
 			_head_id = next_id;
+			if(_head_id != INVALID_ID)
+			{
+				_objects[_head_id].prev = INVALID_ID;
+			}
 		}
 		else
 		{
-			_objects[prev_id].next = next_id;
+			if(prev_id != INVALID_ID)
+			{
+				_objects[prev_id].next = next_id;
+			}
 		}
 		if(id == _tail_id)
 		{
 			_tail_id = prev_id;
+			if(_tail_id != INVALID_ID)
+			{
+				_objects[_tail_id].next = INVALID_ID;
+			}
 		}
 		else
 		{
-			_objects[next_id].prev = prev_id;
+			if(next_id != INVALID_ID)
+			{
+				_objects[next_id].prev = prev_id;
+			}
 		}
 		_objects[id].Reset();
 
 		_indexs[_tail] = id;
 		_tail = (_tail + 1) % _objects.size();
+	}
+
+	Iterator Erase(Iterator iter)
+	{
+		auto id = iter.ID();
+		++iter;
+		Erase(id);
+		return iter;
 	}
 
 	void Clear()
@@ -131,6 +165,8 @@ public:
 		_head = 0;
 		_tail = 0;
 		_indexs.clear();
+		_head_id = INVALID_ID;
+		_tail_id = INVALID_ID;
 	}
 
 	size_t Size()
@@ -145,7 +181,7 @@ public:
 
 	Iterator end()
 	{
-		return Iterator(*this, _objects[_tail_id].next);
+		return _tail_id == INVALID_ID ? Iterator(*this, INVALID_ID) : Iterator(*this, _objects[_tail_id].next);
 	}
 
 private:
@@ -168,8 +204,8 @@ private:
 	size_t _head = 0;
 	size_t _tail = 0;
 	std::vector<size_t> _indexs;
-	size_t _head_id = 0;
-	size_t _tail_id = 0;
+	size_t _head_id = INVALID_ID;
+	size_t _tail_id = INVALID_ID;
 };
 
 NAMESPACE_CLOSE
