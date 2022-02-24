@@ -60,7 +60,7 @@ bool ServerUnit::Update(intvl_t interval)
 	{
 		switch(msg_type)
 		{
-			case MSGT_CONN:
+			case MSGTYPE::MSGT_CONN:
 			{
 				uint8_t ip_len = 0;
 				memcpy(&ip_len, _recv_buffer, IP_LEN_SIZE);
@@ -70,12 +70,12 @@ bool ServerUnit::Update(intvl_t interval)
 				_on_conn(net_id, std::move(ip), port);
 			}
 			break;
-			case MSGT_RECV:
+			case MSGTYPE::MSGT_RECV:
 			{
 				_on_recv(net_id, _recv_buffer, size);
 			}
 			break;
-			case MSGT_DISC:
+			case MSGTYPE::MSGT_DISC:
 			{
 				_on_disc(net_id);
 			}
@@ -279,7 +279,7 @@ void ServerUnit::_IoRecv(NETID net_id, const char * data, uint16_t size)
 	SpscQueue::Header header;
 	header.size = size;
 	header.data16 = net_id;
-	header.data32 = MSGT_RECV;
+	header.data32 = static_cast<uint32_t>(MSGTYPE::MSGT_RECV);
 	_recv_queue.Push(data, header);
 }
 
@@ -300,7 +300,7 @@ NETID ServerUnit::_IoAddPeer(asio::ip::tcp::socket && socket)
 	SpscQueue::Header header;
 	header.size = CONN_BUFFER_SIZE;
 	header.data16 = net_id;
-	header.data32 = MSGT_CONN;
+	header.data32 = static_cast<uint32_t>(MSGTYPE::MSGT_CONN);
 	_recv_queue.Push(_conn_buffer, header);
 
 	return net_id;
@@ -314,7 +314,7 @@ void ServerUnit::_IoDelPeer(NETID net_id)
 	SpscQueue::Header header;
 	header.size = 0;
 	header.data16 = net_id;
-	header.data32 = MSGT_DISC;
+	header.data32 = static_cast<uint32_t>(MSGTYPE::MSGT_DISC);
 	_recv_queue.Push("", header);
 }
 
