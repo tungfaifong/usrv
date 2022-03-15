@@ -103,42 +103,6 @@ luabridge::Namespace LuaUnit::GetGlobalNamespace()
 	return luabridge::getGlobalNamespace(_lua_state);
 }
 
-void LuaUnit::OnConn(NETID net_id, const IP & ip, PORT port)
-{
-	try
-	{
-		(*_on_conn)(net_id, ip, port);
-	}
-	catch(const luabridge::LuaException & e)
-	{
-		OnException(e);
-	}
-}
-
-void LuaUnit::OnRecv(NETID net_id, char * data, uint16_t size)
-{
-	try
-	{
-		(*_on_recv)(net_id, std::string(data, size));
-	}
-	catch(const luabridge::LuaException & e)
-	{
-		OnException(e);
-	}
-}
-
-void LuaUnit::OnDisc(NETID net_id)
-{
-	try
-	{
-		(*_on_disc)(net_id);
-	}
-	catch(const luabridge::LuaException & e)
-	{
-		OnException(e);
-	}
-}
-
 void LuaUnit::OnException(const luabridge::LuaException & e)
 {
 	LOGGER_ERROR("{}", e.what());
