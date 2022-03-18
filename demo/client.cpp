@@ -21,7 +21,7 @@ public:
 
 bool Client::Start()
 {
-	_server_net_id = iserver::Connect("127.0.0.1", 6666, 1000);
+	_server_net_id = server::Connect("127.0.0.1", 6666, 1000);
 	if(_server_net_id == INVALID_NET_ID)
 	{
 		LOGGER_ERROR("client connect failed.");
@@ -32,7 +32,7 @@ bool Client::Start()
 bool Client::Update(intvl_t interval)
 {
 	const char * buff = "echo check 1 check 2;";
-	iserver::Send(_server_net_id, buff, strlen(buff));
+	server::Send(_server_net_id, buff, strlen(buff));
 	return true;
 }
 
