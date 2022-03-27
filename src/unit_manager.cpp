@@ -18,7 +18,7 @@ void UnitManager::Init(intvl_t interval)
 	});
 }
 
-bool UnitManager::Register(const char * key, std::shared_ptr<Unit> && unit)
+bool UnitManager::Register(const std::string & key, std::shared_ptr<Unit> && unit)
 {
 	if(_units.find(key) != _units.end())
 	{
@@ -32,7 +32,7 @@ bool UnitManager::Register(const char * key, std::shared_ptr<Unit> && unit)
 	return true;
 }
 
-std::shared_ptr<Unit> UnitManager::Get(const char * key)
+std::shared_ptr<Unit> UnitManager::Get(const std::string & key)
 {
 	if(_units.find(key) == _units.end())
 	{
