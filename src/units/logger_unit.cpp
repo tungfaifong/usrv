@@ -10,7 +10,7 @@
 
 NAMESPACE_OPEN
 
-LoggerUnit::LoggerUnit(Level level, std::string file_name, size_t spsc_blk_num):_level(level), _file_name(file_name), _spsc_blk_num(spsc_blk_num)
+LoggerUnit::LoggerUnit(LEVEL level, std::string file_name, size_t spsc_blk_num):_level(level), _file_name(file_name), _spsc_blk_num(spsc_blk_num)
 {
 
 }
@@ -77,7 +77,7 @@ bool LoggerUnit::_LogUpdate(intvl_t interval)
 				continue;
 			}
 
-			_RealLog((Level)header.data16, _log_buffer, header.size);
+			_RealLog((LEVEL)header.data16, _log_buffer, header.size);
 
 			busy = true;
 		}
@@ -85,7 +85,7 @@ bool LoggerUnit::_LogUpdate(intvl_t interval)
 	return busy;
 }
 
-void LoggerUnit::_RealLog(Level level, const char * log, uint16_t size)
+void LoggerUnit::_RealLog(LEVEL level, const char * log, uint16_t size)
 {
 	_logger->log((spdlog::level::level_enum)level, std::string_view(log, size));
 }
