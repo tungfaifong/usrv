@@ -8,7 +8,7 @@
 
 NAMESPACE_OPEN
 
-LuaUnit::LuaUnit(const std::string & file, ExposeFunc func) : _file(PATH_ROOT + file), _lua_state(luaL_newstate()),
+LuaUnit::LuaUnit(const std::string & file, ExposeFunc func) : _file(PATH_ROOT + "/" + file), _lua_state(luaL_newstate()),
 	_start(nullptr), _update(nullptr), _stop(nullptr), _on_conn(nullptr), _on_recv(nullptr), _on_disc(nullptr), _expose(func)
 {
 	

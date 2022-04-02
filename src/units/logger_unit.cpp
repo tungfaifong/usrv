@@ -45,7 +45,7 @@ void LoggerUnit::Flush()
 
 void LoggerUnit::_Init()
 {
-	_logger = spdlog::daily_logger_st("logger", PATH_ROOT + _file_name, 0, 0);
+	_logger = spdlog::daily_logger_st("logger", PATH_ROOT + "/" + _file_name, 0, 0);
 	_logger->set_level((spdlog::level::level_enum)_level);
 	_logger->flush_on((spdlog::level::level_enum)_level);
 	_logger->set_pattern("[%Y-%m-%d %H:%M:%S.%f] [%^%l%$] %v");
