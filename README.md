@@ -2,54 +2,25 @@
 
 ## 总览
 
-- 基于asio提供tcp服务器，裸二进制方式进行数据传输。
-- 基于asio提供rpc服务器，裸二进制方式进行数据传输。
-- 基于LuaBridge提供lua脚本嵌入。
-- 提供简单计时器功能。
-- UnitManager提供游戏循环。
-
 ## 依赖
 
-- asio-1.12.2
-- lua-5.2.0
-- LuaBridge-2.4.1
-- protobuf-3.11.3
-- spdlog-1.5.0
+- asio-1.20.0
+- fmt-8.1.0
+- lua-5.4.3
+- LuaBridge-2.7
+- spdlog-1.9.2
 
 ## 编译
 
-### 编译依赖
-
-将依赖的第三方库按CMakeLists中的路径放到3rdparty目录中，或者通过软链方式链接。
-
-### 编译环境
-
-cmake-3.10.2
-
 #### linux
 
-- gcc-7.4.0
+- gcc-11.2.0
 
 ```sh
-mkdir build 
-cd build 
-cmake -DCMAKE_INSTALL_PREFIX=./install ..
-make
-make install
+cd usrv
+make 
+make install PATH_INSTALL = out/install
 ```
-
-#### Windows
-
-- VisualStudio 2017
-
-```sh
-mkdir build
-cd build
-cmake -DCMAKE_INSTALL_PREFIX=./install ..
-```
-
-打开build的项目，生成INSTALL
-编译完之后会在install中获得include头文件和lib静态库，复制放置到项目include和lib中即可。
 
 ## 如何使用
 
@@ -85,23 +56,3 @@ int main(int argc, char* argv[])
 ```
 
 每个服务器需要一个UnitManager，所有的逻辑通过UnitManager来驱动，游戏逻辑服务器需要继承自Unit类，然后注册到UnitManager中。
-
-### TcpServer
-
-参考demo/network/tcp_server.cpp
-
-### RpcServer
-
-参考demo/rpc/rpc_server.cpp
-
-### LuaManager
-
-参考demo/script/test_lua.cpp
-
-### TimerManager
-
-参考demo/timer/test_timer.cpp
-
-## 文档
-
-TODO
