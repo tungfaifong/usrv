@@ -74,6 +74,11 @@ intvl_t UnitManager::Interval()
 	return _loop.Interval();
 }
 
+void UnitManager::LoopNotify()
+{
+	_loop.Notify();
+}
+
 bool UnitManager::_Init()
 {
 	for(auto & [key, unit] : _units)
