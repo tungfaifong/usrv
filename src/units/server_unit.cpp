@@ -9,7 +9,7 @@
 NAMESPACE_OPEN
 
 // ServerUnit
-ServerUnit::ServerUnit(size_t pp_alloc_num, size_t ps_alloc_num, size_t spsc_blk_num): _timer(_io_context), 
+ServerUnit::ServerUnit(size_t pp_alloc_num, size_t ps_alloc_num, size_t spsc_blk_num): _work_guard(asio::make_work_guard(_io_context)), _timer(_io_context), 
 	_peer_pool(pp_alloc_num), _peers(ps_alloc_num), 
 	_send_queue(spsc_blk_num), _recv_queue(spsc_blk_num)
 {
@@ -226,6 +226,7 @@ asio::awaitable<void> ServerUnit::_IoListen(PORT port)
 	catch(const std::system_error & e)
 	{
 		LOGGER_ERROR("ServerUnit::_IoListen error:{}", e.what());
+		Listen(port);
 	}
 }
 
@@ -340,7 +341,10 @@ asio::awaitable<void> Peer::Send(const char * data, uint16_t size)
 		{
 			LOGGER_ERROR("Peer::Send error:{}", e.what());
 		}
-		_server->_IoDisconnect(_net_id);
+		if(_server)
+		{
+			_server->_IoDisconnect(_net_id);
+		}
 	}
 }
 
@@ -377,7 +381,10 @@ asio::awaitable<void> Peer::_Recv()
 		{
 			LOGGER_ERROR("Peer::_Recv error:{}", e.what());
 		}
-		_server->_IoDisconnect(_net_id);
+		if(_server)
+		{
+			_server->_IoDisconnect(_net_id);
+		}
 	}
 }
 
