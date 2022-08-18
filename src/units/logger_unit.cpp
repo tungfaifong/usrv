@@ -71,6 +71,7 @@ bool LoggerUnit::_LogUpdate(intvl_t interval)
 		while(!q.second->Empty())
 		{
 			SpscQueue::Header header;
+			char _log_buffer[MAX_LOG_SIZE];
 
 			if(!q.second->TryPop(_log_buffer, header))
 			{
