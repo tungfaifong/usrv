@@ -56,8 +56,6 @@ bool ServerUnit::Update(intvl_t interval)
 	MSGTYPE msg_type;
 	uint16_t size;
 	auto cnt = 0;
-	char _recv_buffer[MESSAGE_BODY_SIZE];
-
 	while(_Recv(net_id, msg_type, _recv_buffer, size))
 	{
 		switch(msg_type)
@@ -194,7 +192,6 @@ asio::awaitable<void> ServerUnit::_IoSend()
 		while(!_send_queue.Empty())
 		{
 			SpscQueue::Header header;
-			char _send_buffer[MESSAGE_BODY_SIZE];
 
 			if(!_send_queue.TryPop(_send_buffer, header))
 			{
@@ -280,8 +277,6 @@ NETID ServerUnit::_IoAddPeer(asio::ip::tcp::socket && socket)
 	auto ip_len = (uint8_t)ip.size();
 	auto port = peer->Port();
 
-	char _conn_buffer[CONN_BUFFER_SIZE];
-
 	memcpy(_conn_buffer, &ip_len, IP_LEN_SIZE);
 	memcpy(_conn_buffer + IP_LEN_SIZE, ip.c_str(), IP_SIZE);
 	memcpy(_conn_buffer + IP_LEN_SIZE + IP_SIZE, &port, PORT_SIZE);
@@ -336,7 +331,6 @@ asio::awaitable<void> Peer::Send(const char * data, uint16_t size)
 {
 	try
 	{
-		char _send_buffer[MESSAGE_HEAD_SIZE + MESSAGE_BODY_SIZE];
 		memcpy(_send_buffer, &size, MESSAGE_HEAD_SIZE);
 		memcpy(_send_buffer + MESSAGE_HEAD_SIZE, data, size);
 		co_await asio::async_write(*_socket, asio::buffer(_send_buffer, MESSAGE_HEAD_SIZE + size), asio::use_awaitable);
@@ -376,7 +370,6 @@ asio::awaitable<void> Peer::_Recv()
 
 			co_await asio::async_read(*_socket, asio::buffer(&body_size, MESSAGE_HEAD_SIZE), asio::use_awaitable);
 			if(!_socket) break;
-			char _recv_buffer[MESSAGE_BODY_SIZE];
 			co_await asio::async_read(*_socket, asio::buffer(_recv_buffer, body_size), asio::use_awaitable);
 
 			server->_IoRecv(net_id, _recv_buffer, body_size);

@@ -76,14 +76,16 @@ private:
 
 	SpscQueue _send_queue;
 	SpscQueue _recv_queue;
+	char _send_buffer[MESSAGE_BODY_SIZE];
 
 	static constexpr uint8_t IP_LEN_SIZE = sizeof(uint8_t);
 	static constexpr uint8_t IP_SIZE = 39;
 	static constexpr uint8_t PORT_SIZE = sizeof(PORT);
 	static constexpr uint8_t CONN_BUFFER_SIZE = IP_LEN_SIZE + IP_SIZE + PORT_SIZE;
-
 	OnConnFunc _on_conn;
+	char _conn_buffer[CONN_BUFFER_SIZE];
 	OnRecvFunc _on_recv;
+	char _recv_buffer[MESSAGE_BODY_SIZE];
 	OnDiscFunc _on_disc;
 };
 
@@ -107,6 +109,8 @@ private:
 	NETID _net_id = INVALID_NET_ID;
 	std::shared_ptr<asio::ip::tcp::socket> _socket;
 	std::shared_ptr<ServerUnit> _server;
+	char _send_buffer[MESSAGE_HEAD_SIZE + MESSAGE_BODY_SIZE];
+	char _recv_buffer[MESSAGE_BODY_SIZE];
 };
 
 NAMESPACE_CLOSE

@@ -56,6 +56,7 @@ private:
 	size_t _spsc_blk_num;
 	std::unordered_map<std::thread::id, std::shared_ptr<SpscQueue>> _log_queues;
 	std::shared_ptr<spdlog::logger> _logger;
+	char _log_buffer[MAX_LOG_SIZE];
 };
 
 template<typename ... Args> void LoggerUnit::Log(LEVEL level, fmt::format_string<Args...> fmt, Args && ... args)
