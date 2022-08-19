@@ -93,6 +93,11 @@ void LuaUnit::Release()
 	Unit::Release();
 }
 
+lua_State * LuaUnit::GetLuaState()
+{
+	return _lua_state;
+}
+
 luabridge::LuaRef LuaUnit::GetGlobal(const char * name)
 {
 	return luabridge::getGlobal(_lua_state, name);
