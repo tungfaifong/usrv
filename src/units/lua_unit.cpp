@@ -24,8 +24,8 @@ bool LuaUnit::Init()
 		return false;
 	}
 
-	if (!_InitFunc(_start, "Start") || !_InitFunc(_update, "Update") || !_InitFunc(_stop, "Stop") ||
-		!_InitFunc(_on_conn, "OnConn") || !_InitFunc(_on_recv, "OnRecv") || !_InitFunc(_on_disc, "OnDisc"))
+	if (!InitFunc(_start, "Start") || !InitFunc(_update, "Update") || !InitFunc(_stop, "Stop") ||
+		!InitFunc(_on_conn, "OnConn") || !InitFunc(_on_recv, "OnRecv") || !InitFunc(_on_disc, "OnDisc"))
 	{
 		LOGGER_ERROR("LuaUnit::Init error: _InitFunc filed.");
 		return false;
@@ -149,7 +149,7 @@ void LuaUnit::OnException(const luabridge::LuaException & e)
 	LOGGER_ERROR("{}", e.what());
 }
 
-bool LuaUnit::_InitFunc(std::shared_ptr<luabridge::LuaRef> & func, const char * func_name)
+bool LuaUnit::InitFunc(std::shared_ptr<luabridge::LuaRef> & func, const char * func_name)
 {
 	func = std::make_shared<luabridge::LuaRef>(GetGlobal(func_name));
 	if (!func->isFunction())
