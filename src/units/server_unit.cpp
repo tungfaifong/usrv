@@ -9,7 +9,7 @@
 NAMESPACE_OPEN
 
 // ServerUnit
-ServerUnit::ServerUnit(size_t pp_alloc_num, size_t ps_alloc_num, size_t spsc_blk_num): _work_guard(asio::make_work_guard(_io_context)), _timer(_io_context), 
+ServerUnit::ServerUnit(size_t pp_alloc_num, size_t ps_alloc_num, size_t spsc_blk_num): _work_guard(asio::make_work_guard(_io_context)), 
 	_peer_pool(pp_alloc_num), _peers(ps_alloc_num), 
 	_send_queue(spsc_blk_num), _recv_queue(spsc_blk_num)
 {
@@ -254,7 +254,6 @@ void ServerUnit::_IoDisconnect(NETID net_id)
 		return;
 	}
 	_peers[net_id]->Stop();
-	_IoDelPeer(net_id);
 }
 
 void ServerUnit::_IoRecv(NETID net_id, const char * data, uint16_t size, MSGTYPE msg_type /* = MSGTYPE::MSGT_RECV */)
@@ -288,6 +287,7 @@ NETID ServerUnit::_IoAddPeer(asio::ip::tcp::socket && socket)
 
 void ServerUnit::_IoDelPeer(NETID net_id)
 {
+	_peers[net_id]->Release();
 	_peer_pool.Put(std::move(_peers[net_id]));
 	_peers.Erase(net_id);
 
@@ -300,6 +300,9 @@ void Peer::Start(NETID net_id, asio::ip::tcp::socket && socket, const std::share
 	_net_id = net_id;
 	_socket = std::make_shared<asio::ip::tcp::socket>(std::move(socket));
 	_server = server;
+	_wait_to_release = false;
+	_sending = 0;
+	_recving = false;
 	asio::co_spawn(_socket->get_executor(), _Recv(), asio::detached);
 }
 
@@ -316,10 +319,8 @@ void Peer::Stop()
 				LOGGER_ERROR("Peer::Stop shutdown error:{}", ec.message());
 			}
 			_socket->close(ec);
+			_wait_to_release = true;
 		}
-		_net_id = INVALID_NET_ID;
-		_socket = nullptr;
-		_server = nullptr;
 	}
 	catch(const std::system_error& e)
 	{
@@ -327,8 +328,16 @@ void Peer::Stop()
 	}
 }
 
+void Peer::Release()
+{
+	_net_id = INVALID_NET_ID;
+	_socket = nullptr;
+	_server = nullptr;
+}
+
 asio::awaitable<void> Peer::Send(const char * data, uint16_t size)
 {
+	++_sending;
 	try
 	{
 		memcpy(_send_buffer, &size, MESSAGE_HEAD_SIZE);
@@ -341,11 +350,10 @@ asio::awaitable<void> Peer::Send(const char * data, uint16_t size)
 		{
 			LOGGER_ERROR("Peer::Send error:{}", e.what());
 		}
-		if(_server)
-		{
-			_server->_IoDisconnect(_net_id);
-		}
+		_server->_IoDisconnect(_net_id);
 	}
+	--_sending;
+	_CheckRelease();
 }
 
 IP Peer::Ip()
@@ -360,19 +368,18 @@ PORT Peer::Port()
 
 asio::awaitable<void> Peer::_Recv()
 {
+	_recving = true;
 	try
 	{
 		while(_socket)
 		{
-			auto net_id = _net_id;
 			uint16_t body_size = 0;
-			auto server = _server;
 
 			co_await asio::async_read(*_socket, asio::buffer(&body_size, MESSAGE_HEAD_SIZE), asio::use_awaitable);
-			if(!_socket) break;
+			if(!_socket->is_open()) break;
 			co_await asio::async_read(*_socket, asio::buffer(_recv_buffer, body_size), asio::use_awaitable);
 
-			server->_IoRecv(net_id, _recv_buffer, body_size);
+			_server->_IoRecv(_net_id, _recv_buffer, body_size);
 		}
 	}
 	catch (const std::system_error & e)
@@ -381,11 +388,20 @@ asio::awaitable<void> Peer::_Recv()
 		{
 			LOGGER_ERROR("Peer::_Recv error:{}", e.what());
 		}
-		if(_server)
-		{
-			_server->_IoDisconnect(_net_id);
-		}
+		_server->_IoDisconnect(_net_id);
 	}
+	_recving = false;
+	_CheckRelease();
+}
+
+bool Peer::_CheckRelease()
+{
+	if(!_wait_to_release || _sending > 0 || _recving)
+	{
+		return false;
+	}
+	_server->_IoDelPeer(_net_id);
+	return true;
 }
 
 NAMESPACE_CLOSE
