@@ -163,6 +163,9 @@ bool LuaUnit::InitFunc(std::shared_ptr<luabridge::LuaRef> & func, const char * f
 void LuaUnit::_Expose()
 {
 	GetGlobalNamespace()
+		.beginNamespace("engine")
+			.addFunction("Now", Now)
+			.addFunction("NowMs", NowMs)
 		.beginNamespace("logger")
 			.addFunction("trace", logger::lua_trace)
 			.addFunction("debug", logger::lua_debug)
