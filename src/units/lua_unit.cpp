@@ -20,7 +20,7 @@ bool LuaUnit::Init()
 
 	if (luaL_dofile(_lua_state, _file.c_str()))
 	{
-		LOGGER_ERROR("LuaUnit::Init error: missing file {}", _file);
+		LOGGER_ERROR("LuaUnit::Init error: {}", lua_tostring(_lua_state, -1));
 		return false;
 	}
 
