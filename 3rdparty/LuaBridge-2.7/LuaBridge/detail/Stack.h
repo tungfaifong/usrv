@@ -92,6 +92,46 @@ struct Stack<unsigned int>
 
 //------------------------------------------------------------------------------
 /**
+    Stack specialization for `int64`.
+*/
+template<>
+struct Stack<int64_t>
+{
+    static void push(lua_State* L, int64_t value)
+    {
+        lua_pushinteger(L, static_cast<lua_Integer>(value));
+    }
+
+    static int64_t get(lua_State* L, int index)
+    {
+        return static_cast<int64_t>(luaL_checkinteger(L, index));
+    }
+
+    static bool isInstance(lua_State* L, int index) { return lua_type(L, index) == LUA_TNUMBER; }
+};
+
+//------------------------------------------------------------------------------
+/**
+    Stack specialization for `unsigned int64`.
+*/
+template<>
+struct Stack<uint64_t>
+{
+    static void push(lua_State* L, uint64_t value)
+    {
+        lua_pushinteger(L, static_cast<lua_Integer>(value));
+    }
+
+    static uint64_t get(lua_State* L, int index)
+    {
+        return static_cast<uint64_t>(luaL_checkinteger(L, index));
+    }
+
+    static bool isInstance(lua_State* L, int index) { return lua_type(L, index) == LUA_TNUMBER; }
+};
+
+//------------------------------------------------------------------------------
+/**
     Stack specialization for `unsigned char`.
 */
 template<>
