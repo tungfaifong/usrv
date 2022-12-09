@@ -43,19 +43,13 @@ std::shared_ptr<Unit> UnitManager::Get(const std::string & key)
 
 bool UnitManager::Run()
 {
-	if (!_Init())
-	{
-		LOGGER_FLUSH();
-		return false;
-	}
+	auto ret = true;
 
-	if (!_Start())
+	ret = _Init() && _Start();
+	if(ret)
 	{
-		LOGGER_FLUSH();
-		return false;
+		_loop.Run();
 	}
-
-	_loop.Run();
 
 	_Stop();
 
@@ -63,7 +57,7 @@ bool UnitManager::Run()
 
 	_loop.Release();
 
-	return true;
+	return ret;
 }
 
 void UnitManager::SetExit(bool exit)

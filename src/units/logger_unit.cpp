@@ -26,10 +26,22 @@ void LoggerUnit::OnRegister(const std::shared_ptr<UnitManager> & mgr)
 	_Init();
 }
 
+bool LoggerUnit::Start()
+{
+	_log_thread = std::thread([self = shared_from_this()](){
+		self->_LogStart();
+	});
+
+	return true;
+}
+
 void LoggerUnit::Stop()
 {
 	_loop.SetExit(true);
-	_log_thread.join();
+	if(_log_thread.joinable())
+	{
+		_log_thread.join();
+	}
 }
 
 void LoggerUnit::Release()
@@ -43,6 +55,12 @@ void LoggerUnit::Flush()
 	_LogUpdate(0);
 }
 
+void LoggerUnit::OnAbort()
+{
+	Stop();
+	Flush();
+}
+
 void LoggerUnit::_Init()
 {
 	_logger = spdlog::daily_logger_st("logger", PATH_ROOT + "/" + _file_name, 0, 0);
@@ -52,9 +70,6 @@ void LoggerUnit::_Init()
 	
 	_loop.Init(_mgr->Interval(), [self = shared_from_this()](intvl_t interval){
 		return self->_LogUpdate(interval);
-	});
-	_log_thread = std::thread([self = shared_from_this()](){
-		self->_LogStart();
 	});
 }
 

@@ -90,7 +90,10 @@ bool ServerUnit::Update(intvl_t interval)
 void ServerUnit::Stop()
 {
 	_io_context.stop();
-	_io_thread.join();
+	if(_io_thread.joinable())
+	{
+		_io_thread.join();
+	}
 }
 
 void ServerUnit::Release()
