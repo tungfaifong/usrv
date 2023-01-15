@@ -2,19 +2,26 @@
 
 #include "interfaces/logger_interface.h"
 #include "interfaces/server_interface.h"
+#include "interfaces/timer_interface.h"
 #include "unit_manager.h"
 #include "units/server_unit.h"
 
 using namespace usrv;
 
-class Client : public Unit
+class Client;
+
+uint32_t g_TotalCnt = 0;
+std::unordered_map<NETID, std::shared_ptr<Client>> g_Clients;
+
+class Client : public Unit, public std::enable_shared_from_this<Client>
 {
 public:
 	Client() = default;
 	~Client() = default;
 
 	virtual bool Start();
-	virtual bool Update(intvl_t interval);
+	void OnRecv(NETID net_id, char * data, uint16_t size);
+	void Send();
 
 	NETID _server_net_id = INVALID_NET_ID;
 };
@@ -27,46 +34,59 @@ bool Client::Start()
 		LOGGER_ERROR("client connect failed.");
 		return false;
 	}
-	return true;
-}
-bool Client::Update(intvl_t interval)
-{
-	const char * buff = "echo check 1 check 2;";
-	server::Send(_server_net_id, buff, strlen(buff));
+	g_Clients[_server_net_id] = shared_from_this();
+	Send();
 	return true;
 }
 
-bool run_client()
+void Client::OnRecv(NETID net_id, char * data, uint16_t size)
+{
+	++g_TotalCnt;
+	Send();
+}
+
+void Client::Send()
+{
+	const char * buff = "echo check 1 check 2;";
+	server::Send(_server_net_id, buff, strlen(buff));
+}
+
+bool run_client(uint32_t client_num, uint32_t time)
 {
 	UnitManager::Instance()->Init(10);
 	UnitManager::Instance()->Register("LOGGER", std::move(std::make_shared<LoggerUnit>(LoggerUnit::LEVEL::TRACE, "/logs/client.log", 1 Mi)));
+	UnitManager::Instance()->Register("TIMER", std::move(std::make_shared<TimerUnit>(1 Ki, 1 Ki)));
 	UnitManager::Instance()->Register("SERVER", std::move(std::make_shared<ServerUnit>(1 Ki, 1 Ki, 4 Mi)));
-	UnitManager::Instance()->Register("ISERVER", std::move(std::make_shared<ServerUnit>(1 Ki, 1 Ki, 4 Mi)));
-	UnitManager::Instance()->Register("CLIENT", std::move(std::make_shared<Client>()));
+
+	for(uint32_t i = 0; i < client_num; ++i)
+	{
+		auto client_key = "CLIENT#"+std::to_string(i+1);
+		if(!UnitManager::Instance()->Register(client_key.c_str(), std::move(std::make_shared<Client>())))
+		{
+			LOGGER_ERROR("key:{} error", client_key);
+		}
+	}
 
 	auto server = std::dynamic_pointer_cast<ServerUnit>(UnitManager::Instance()->Get("SERVER"));
 	server->OnConn([](NETID net_id, IP ip, PORT port){
 		LOGGER_INFO("conn: net_id:{} ip:{} port:{}", net_id, ip, port);
 	});
 	server->OnRecv([](NETID net_id, char * data, uint16_t size) {
-		LOGGER_INFO("recv: net_id:{} data:{}", net_id, std::string(data, size));
+		auto client = g_Clients.find(net_id);
+		if(client != g_Clients.end())
+		{
+			client->second->OnRecv(net_id, data, size);
+		}
 	});
 	server->OnDisc([](NETID net_id){
 		LOGGER_INFO("conn: net_id:{}", net_id);
 	});
 
-	auto iserver = std::dynamic_pointer_cast<ServerUnit>(UnitManager::Instance()->Get("ISERVER"));
-	iserver->OnConn([](NETID net_id, IP ip, PORT port){
-		LOGGER_INFO("conn: net_id:{} ip:{} port:{}", net_id, ip, port);
-	});
-	iserver->OnRecv([](NETID net_id, char * data, uint16_t size) {
-		LOGGER_INFO("recv: net_id:{} data:{}", net_id, std::string(data, size));
-	});
-	iserver->OnDisc([](NETID net_id){
-		LOGGER_INFO("conn: net_id:{}", net_id);
-	});
+	timer::CreateTimer(time, [](){UnitManager::Instance()->SetExit(true);});
 
 	UnitManager::Instance()->Run();
+
+	LOGGER_INFO("total cnt:{}", g_TotalCnt);
 
 	return true;
 }
