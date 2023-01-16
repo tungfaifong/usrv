@@ -16,7 +16,7 @@ std::unordered_map<NETID, std::shared_ptr<Client>> g_Clients;
 class Client : public Unit, public std::enable_shared_from_this<Client>
 {
 public:
-	Client() = default;
+	Client(uint32_t req_num):_req_num(req_num) {}
 	~Client() = default;
 
 	virtual bool Start();
@@ -24,6 +24,7 @@ public:
 	void Send();
 
 	NETID _server_net_id = INVALID_NET_ID;
+	uint32_t _req_num = 0;
 };
 
 bool Client::Start()
@@ -35,7 +36,10 @@ bool Client::Start()
 		return false;
 	}
 	g_Clients[_server_net_id] = shared_from_this();
-	Send();
+	for(uint32_t i = 0; i < _req_num; ++i)
+	{
+		Send();
+	}
 	return true;
 }
 
@@ -51,7 +55,7 @@ void Client::Send()
 	server::Send(_server_net_id, buff, strlen(buff));
 }
 
-bool run_client(uint32_t client_num, uint32_t time)
+bool run_client(uint32_t client_num, uint32_t req_num, uint32_t time)
 {
 	UnitManager::Instance()->Init(10);
 	UnitManager::Instance()->Register("LOGGER", std::move(std::make_shared<LoggerUnit>(LoggerUnit::LEVEL::TRACE, "/logs/client.log", 1 Mi)));
@@ -61,7 +65,7 @@ bool run_client(uint32_t client_num, uint32_t time)
 	for(uint32_t i = 0; i < client_num; ++i)
 	{
 		auto client_key = "CLIENT#"+std::to_string(i+1);
-		if(!UnitManager::Instance()->Register(client_key.c_str(), std::move(std::make_shared<Client>())))
+		if(!UnitManager::Instance()->Register(client_key.c_str(), std::move(std::make_shared<Client>(req_num))))
 		{
 			LOGGER_ERROR("key:{} error", client_key);
 		}
@@ -86,7 +90,7 @@ bool run_client(uint32_t client_num, uint32_t time)
 
 	UnitManager::Instance()->Run();
 
-	LOGGER_INFO("total cnt:{}", g_TotalCnt);
+	std::cout << "qps:" << g_TotalCnt / (time / 1000) << std::endl;
 
 	return true;
 }
