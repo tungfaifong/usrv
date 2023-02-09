@@ -343,7 +343,8 @@ asio::awaitable<void> Peer::Send(const char * data, uint16_t size)
 	++_sending;
 	try
 	{
-		memcpy(_send_buffer, &size, MESSAGE_HEAD_SIZE);
+		auto nsize = htons(size);
+		memcpy(_send_buffer, &nsize, MESSAGE_HEAD_SIZE);
 		memcpy(_send_buffer + MESSAGE_HEAD_SIZE, data, size);
 		co_await asio::async_write(*_socket, asio::buffer(_send_buffer, MESSAGE_HEAD_SIZE + size), asio::use_awaitable);
 	}
@@ -380,6 +381,7 @@ asio::awaitable<void> Peer::_Recv()
 
 			co_await asio::async_read(*_socket, asio::buffer(&body_size, MESSAGE_HEAD_SIZE), asio::use_awaitable);
 			if(!_socket->is_open()) break;
+			body_size = ntohs(body_size);
 			co_await asio::async_read(*_socket, asio::buffer(_recv_buffer, body_size), asio::use_awaitable);
 
 			_server->_IoRecv(_net_id, _recv_buffer, body_size);
