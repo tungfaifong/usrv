@@ -51,6 +51,7 @@ inline void lua_log(LoggerUnit::LEVEL level, const std::string & msg, lua_State 
 	log(info.short_src, info.currentline, (info.name ? info.name : "?"), level, "{}", msg);
 };
 
+inline uint32_t lua_level() { return (uint32_t)Level(); }
 inline void lua_trace(const std::string & msg, lua_State *L) { lua_log(LoggerUnit::LEVEL::TRACE, msg, L); }
 inline void lua_debug(const std::string & msg, lua_State *L) { lua_log(LoggerUnit::LEVEL::DEBUG, msg, L); }
 inline void lua_info(const std::string & msg, lua_State *L) { lua_log(LoggerUnit::LEVEL::INFO, msg, L); }
