@@ -36,7 +36,7 @@ static constexpr PORT DEFAULT_PORT = 0;
 static constexpr TIMERID INVALID_TIMER_ID = -1;
 
 static constexpr uint16_t MESSAGE_HEAD_SIZE = sizeof(uint16_t);
-static constexpr uint16_t MESSAGE_BODY_SIZE = UINT16_MAX;
+static constexpr uint16_t MESSAGE_BODY_SIZE = 65536 - MESSAGE_HEAD_SIZE; //asio::detail::default_max_transfer_size(65536) - MESSAGE_HEAD_SIZE asio限制了一次发送的最大大小
 
 extern std::string PATH_ROOT; // getcwd(NULL, 1024)
 
