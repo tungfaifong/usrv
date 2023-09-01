@@ -43,21 +43,21 @@ inline void log(const char * file, int32_t line, const char * func, LoggerUnit::
 #define LOGGER_ERROR(fmt, ...) logger::log(__FILE__, __LINE__, __func__, LoggerUnit::LEVEL::ERROR, fmt, ##__VA_ARGS__)
 #define LOGGER_CRITICAL(fmt, ...) logger::log(__FILE__, __LINE__, __func__, LoggerUnit::LEVEL::CRITICAL, fmt, ##__VA_ARGS__)
 
-inline void lua_log(LoggerUnit::LEVEL level, const std::string & msg, lua_State *L)
+inline void lua_log(LoggerUnit::LEVEL level, uint32_t stack_level, const std::string & msg, lua_State *L)
 {
 	lua_Debug info;
-	lua_getstack(L, 1, &info);
+	lua_getstack(L, stack_level, &info);
 	lua_getinfo(L, "Sln", &info);
 	log(info.short_src, info.currentline, (info.name ? info.name : "?"), level, "{}", msg);
 };
 
 inline uint32_t lua_level() { return (uint32_t)Level(); }
-inline void lua_trace(const std::string & msg, lua_State *L) { lua_log(LoggerUnit::LEVEL::TRACE, msg, L); }
-inline void lua_debug(const std::string & msg, lua_State *L) { lua_log(LoggerUnit::LEVEL::DEBUG, msg, L); }
-inline void lua_info(const std::string & msg, lua_State *L) { lua_log(LoggerUnit::LEVEL::INFO, msg, L); }
-inline void lua_warn(const std::string & msg, lua_State *L) { lua_log(LoggerUnit::LEVEL::WARN, msg, L); }
-inline void lua_error(const std::string & msg, lua_State *L) { lua_log(LoggerUnit::LEVEL::ERROR, msg, L); }
-inline void lua_critical(const std::string & msg, lua_State *L) { lua_log(LoggerUnit::LEVEL::CRITICAL, msg, L); }
+inline void lua_trace(uint32_t stack_level, const std::string & msg, lua_State *L) { lua_log(LoggerUnit::LEVEL::TRACE, stack_level, msg, L); }
+inline void lua_debug(uint32_t stack_level, const std::string & msg, lua_State *L) { lua_log(LoggerUnit::LEVEL::DEBUG, stack_level, msg, L); }
+inline void lua_info(uint32_t stack_level, const std::string & msg, lua_State *L) { lua_log(LoggerUnit::LEVEL::INFO, stack_level, msg, L); }
+inline void lua_warn(uint32_t stack_level, const std::string & msg, lua_State *L) { lua_log(LoggerUnit::LEVEL::WARN, stack_level, msg, L); }
+inline void lua_error(uint32_t stack_level, const std::string & msg, lua_State *L) { lua_log(LoggerUnit::LEVEL::ERROR, stack_level, msg, L); }
+inline void lua_critical(uint32_t stack_level, const std::string & msg, lua_State *L) { lua_log(LoggerUnit::LEVEL::CRITICAL, stack_level, msg, L); }
 
 }
 
