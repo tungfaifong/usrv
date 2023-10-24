@@ -43,7 +43,7 @@ public:
 
 public:
 	void Listen(PORT port);
-	NETID Connect(const IP & ip, PORT port, uint32_t timeout);
+	NETID Connect(const IP & ip, PORT port);
 	void Disconnect(NETID net_id);
 	bool Send(NETID net_id, const char * data, uint16_t size);
 	void OnConn(OnConnFunc func);

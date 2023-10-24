@@ -109,16 +109,21 @@ void ServerUnit::Listen(PORT port)
 	asio::co_spawn(_io_context, _IoListen(port), asio::detached);
 }
 
-NETID ServerUnit::Connect(const IP & ip, PORT port, uint32_t timeout)
+NETID ServerUnit::Connect(const IP & ip, PORT port)
 {
-	std::promise<NETID> promise_net_id;
-	auto future_net_id = promise_net_id.get_future();
-	asio::co_spawn(_io_context, _IoConnect(ip, port, std::move(promise_net_id)), asio::detached);
-	if(future_net_id.wait_for(ms_t(timeout)) != std::future_status::ready)
+	try
 	{
+		std::promise<NETID> promise_net_id;
+		auto future_net_id = promise_net_id.get_future();
+		asio::co_spawn(_io_context, _IoConnect(ip, port, std::move(promise_net_id)), asio::detached);
+		future_net_id.wait();
+		return future_net_id.get();
+	}
+	catch(const std::system_error & e)
+	{
+		LOGGER_ERROR("ServerUnit::Connect error:{}", e.what());
 		return INVALID_NET_ID;
 	}
-	return future_net_id.get();
 }
 
 void ServerUnit::Disconnect(NETID net_id)
@@ -246,6 +251,7 @@ asio::awaitable<void> ServerUnit::_IoConnect(const IP & ip, PORT port, std::prom
 	}
 	catch(const std::system_error & e)
 	{
+		promise_net_id.set_exception(std::make_exception_ptr(e));
 		LOGGER_ERROR("ServerUnit::_IoConnect error:{}", e.what());
 	}
 }

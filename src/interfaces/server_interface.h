@@ -17,9 +17,9 @@ inline void Listen(PORT port)
 	std::dynamic_pointer_cast<ServerUnit>(UnitManager::Instance()->Get("SERVER"))->Listen(port);
 }
 
-inline NETID Connect(const IP & ip, PORT port, uint32_t timeout)
+inline NETID Connect(const IP & ip, PORT port)
 {
-	return std::dynamic_pointer_cast<ServerUnit>(UnitManager::Instance()->Get("SERVER"))->Connect(ip, port, timeout);
+	return std::dynamic_pointer_cast<ServerUnit>(UnitManager::Instance()->Get("SERVER"))->Connect(ip, port);
 }
 
 inline void Disconnect(NETID net_id)
