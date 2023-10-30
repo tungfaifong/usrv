@@ -26,7 +26,7 @@ SUB_DIR = $(PATH_SRC) $(PATH_SRC)/$(PATH_COMPONENTS) $(PATH_SRC)/$(PATH_INTERFAC
 INC_ASIO = -I$(PATH_3RDPARTY)/asio-1.20.0
 INC_FMT = -I$(PATH_3RDPARTY)/fmt-8.1.0/include
 INC_JEMALLOC = -I$(PATH_3RDPARTY)/jemalloc-5.3.0/include
-INC_LUA = -I$(PATH_3RDPARTY)/lua-5.4.3/include
+INC_LUA = -I$(PATH_3RDPARTY)/lua-5.4.6/include
 INC_LUA_BRIDGE = -I$(PATH_3RDPARTY)/LuaBridge-2.7
 INC_SPDLOG = -I$(PATH_3RDPARTY)/spdlog-1.9.2
 INC_ALL = -I./src $(INC_ASIO) $(INC_FMT) $(INC_JEMALLOC) $(INC_LUA) $(INC_LUA_BRIDGE) $(INC_SPDLOG)
@@ -34,7 +34,7 @@ INC_ALL = -I./src $(INC_ASIO) $(INC_FMT) $(INC_JEMALLOC) $(INC_LUA) $(INC_LUA_BR
 # lib
 LIB_FMT = -L$(PATH_3RDPARTY)/fmt-8.1.0/lib -lfmt
 LIB_JEMALLOC = -L$(PATH_3RDPARTY)/jemalloc-5.3.0/lib -ljemalloc
-LIB_LUA = -L$(PATH_3RDPARTY)/lua-5.4.3/lib -llua
+LIB_LUA = -L$(PATH_3RDPARTY)/lua-5.4.6/lib -llua
 LIB_ALL = $(LIB_FMT) $(LIB_JEMALLOC) $(LIB_LUA)
 
 LINK_FLAGS = $(LIB_ALL) -lpthread -ldl
