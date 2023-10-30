@@ -136,6 +136,12 @@ void ServerUnit::Disconnect(NETID net_id)
 
 bool ServerUnit::Send(NETID net_id, const char * data, uint16_t size)
 {
+	if(size > MESSAGE_BODY_SIZE)
+	{
+		LOGGER_ERROR("Send size too large size:{} max_size:{}", size, MESSAGE_BODY_SIZE);
+		return false;
+	}
+
 	SpscQueue::Header header;
 	header.size = size;
 	header.data16 = net_id;
