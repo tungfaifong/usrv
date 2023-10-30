@@ -140,7 +140,10 @@ bool ServerUnit::Send(NETID net_id, const char * data, uint16_t size)
 	header.data16 = net_id;
 	header.data32 = 0;
 
-	_send_queue.Push(data, header);
+	if(!_send_queue.TryPush(data, header))
+	{
+		return false;
+	}
 
 	asio::co_spawn(_io_context, _IoSend(), asio::detached);
 
