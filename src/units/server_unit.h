@@ -58,9 +58,9 @@ private:
 	asio::awaitable<void> _IoListen(PORT port);
 	asio::awaitable<void> _IoConnect(const IP & ip, PORT port, std::promise<NETID> && promise_net_id);
 	void _IoDisconnect(NETID net_id);
-	void _IoRecv(NETID net_id, const char * data, uint16_t size, MSGTYPE msg_type = MSGTYPE::MSGT_RECV);
-	NETID _IoAddPeer(asio::ip::tcp::socket && socket);
-	void _IoDelPeer(NETID net_id);
+	asio::awaitable<void> _IoRecv(NETID net_id, const char * data, uint16_t size, MSGTYPE msg_type = MSGTYPE::MSGT_RECV);
+	asio::awaitable<NETID> _IoAddPeer(asio::ip::tcp::socket && socket);
+	asio::awaitable<void> _IoDelPeer(NETID net_id);
 
 private:
 	friend class Peer;
@@ -69,6 +69,7 @@ private:
 	asio::io_context _io_context;
 	asio::executor_work_guard<asio::io_context::executor_type> _work_guard;
 	intvl_t _io_interval = 0;
+	asio::steady_timer _io_recv_timer;
 
 	ObjectPool<Peer> _peer_pool;
 	ObjectMap<Peer> _peers;
@@ -104,7 +105,7 @@ public:
 
 private:
 	asio::awaitable<void> _Recv();
-	bool _CheckRelease();
+	asio::awaitable<void> _CheckRelease();
 
 private:
 	NETID _net_id = INVALID_NET_ID;

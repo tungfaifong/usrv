@@ -9,7 +9,8 @@
 NAMESPACE_OPEN
 
 // ServerUnit
-ServerUnit::ServerUnit(size_t pp_alloc_num, size_t ps_alloc_num, size_t spsc_blk_num): _work_guard(asio::make_work_guard(_io_context)), 
+ServerUnit::ServerUnit(size_t pp_alloc_num, size_t ps_alloc_num, size_t spsc_blk_num): _work_guard(asio::make_work_guard(_io_context)),
+	_io_recv_timer(_io_context),
 	_peer_pool(pp_alloc_num), _peers(ps_alloc_num), 
 	_send_queue(spsc_blk_num), _recv_queue(spsc_blk_num)
 {
@@ -140,10 +141,7 @@ bool ServerUnit::Send(NETID net_id, const char * data, uint16_t size)
 	header.data16 = net_id;
 	header.data32 = 0;
 
-	if(!_send_queue.TryPush(data, header))
-	{
-		return false;
-	}
+	_send_queue.Push(data, header);
 
 	asio::co_spawn(_io_context, _IoSend(), asio::detached);
 
@@ -231,7 +229,7 @@ asio::awaitable<void> ServerUnit::_IoListen(PORT port)
 		while(true)
 		{
 			auto socket = co_await acceptor.async_accept(asio::use_awaitable);
-			_IoAddPeer(std::move(socket));
+			co_await _IoAddPeer(std::move(socket));
 		}
 	}
 	catch(const std::system_error & e)
@@ -249,7 +247,7 @@ asio::awaitable<void> ServerUnit::_IoConnect(const IP & ip, PORT port, std::prom
 		auto socket = asio::ip::tcp::socket(_io_context);
 		auto endpoint = resolver.resolve(ip, std::to_string(port));
 		co_await asio::async_connect(socket, endpoint, asio::use_awaitable);
-		auto net_id = _IoAddPeer(std::move(socket));
+		auto net_id = co_await _IoAddPeer(std::move(socket));
 		promise_net_id.set_value(net_id);
 	}
 	catch(const std::system_error & e)
@@ -268,17 +266,22 @@ void ServerUnit::_IoDisconnect(NETID net_id)
 	_peers[net_id]->Stop();
 }
 
-void ServerUnit::_IoRecv(NETID net_id, const char * data, uint16_t size, MSGTYPE msg_type /* = MSGTYPE::MSGT_RECV */)
+asio::awaitable<void> ServerUnit::_IoRecv(NETID net_id, const char * data, uint16_t size, MSGTYPE msg_type /* = MSGTYPE::MSGT_RECV */)
 {
 	SpscQueue::Header header;
 	header.size = size;
 	header.data16 = net_id;
 	header.data32 = static_cast<uint32_t>(msg_type);
-	_recv_queue.Push(data, header);
+	while(!_recv_queue.TryPush(data, header))
+	{
+		_io_recv_timer.expires_after(ms_t(_io_interval));
+		asio::error_code ec;
+		co_await _io_recv_timer.async_wait(redirect_error(asio::use_awaitable, ec));
+	}
 	_mgr->LoopNotify();
 }
 
-NETID ServerUnit::_IoAddPeer(asio::ip::tcp::socket && socket)
+asio::awaitable<NETID> ServerUnit::_IoAddPeer(asio::ip::tcp::socket && socket)
 {
 	auto net_id = _peers.Insert(std::move(_peer_pool.Get()));
 	auto peer = _peers[net_id];
@@ -292,18 +295,18 @@ NETID ServerUnit::_IoAddPeer(asio::ip::tcp::socket && socket)
 	memcpy(_conn_buffer + IP_LEN_SIZE, ip.c_str(), IP_SIZE);
 	memcpy(_conn_buffer + IP_LEN_SIZE + IP_SIZE, &port, PORT_SIZE);
 
-	_IoRecv(net_id, _conn_buffer, CONN_BUFFER_SIZE, MSGTYPE::MSGT_CONN);
+	co_await _IoRecv(net_id, _conn_buffer, CONN_BUFFER_SIZE, MSGTYPE::MSGT_CONN);
 
-	return net_id;
+	co_return net_id;
 }
 
-void ServerUnit::_IoDelPeer(NETID net_id)
+asio::awaitable<void> ServerUnit::_IoDelPeer(NETID net_id)
 {
 	_peers[net_id]->Release();
 	_peer_pool.Put(std::move(_peers[net_id]));
 	_peers.Erase(net_id);
 
-	_IoRecv(net_id, "", 0, MSGTYPE::MSGT_DISC);
+	co_await _IoRecv(net_id, "", 0, MSGTYPE::MSGT_DISC);
 }
 
 // Peer
@@ -366,7 +369,7 @@ asio::awaitable<void> Peer::Send(const char * data, uint16_t size)
 		_server->_IoDisconnect(_net_id);
 	}
 	--_sending;
-	_CheckRelease();
+	co_await _CheckRelease();
 }
 
 IP Peer::Ip()
@@ -393,7 +396,7 @@ asio::awaitable<void> Peer::_Recv()
 			body_size = ntohs(body_size);
 			co_await asio::async_read(*_socket, asio::buffer(_recv_buffer, body_size), asio::use_awaitable);
 
-			_server->_IoRecv(_net_id, _recv_buffer, body_size);
+			co_await _server->_IoRecv(_net_id, _recv_buffer, body_size);
 		}
 	}
 	catch (const std::system_error & e)
@@ -405,17 +408,16 @@ asio::awaitable<void> Peer::_Recv()
 		_server->_IoDisconnect(_net_id);
 	}
 	_recving = false;
-	_CheckRelease();
+	co_await _CheckRelease();
 }
 
-bool Peer::_CheckRelease()
+asio::awaitable<void> Peer::_CheckRelease()
 {
 	if(!_wait_to_release || _sending > 0 || _recving)
 	{
-		return false;
+		co_return;
 	}
-	_server->_IoDelPeer(_net_id);
-	return true;
+	co_await _server->_IoDelPeer(_net_id);
 }
 
 NAMESPACE_CLOSE
