@@ -202,6 +202,12 @@ void ServerUnit::_IoInit()
 
 asio::awaitable<void> ServerUnit::_IoSend()
 {
+	if(_sending)
+	{
+		co_return;
+	}
+	_sending = true;
+
 	try
 	{
 		while(!_send_queue.Empty())
@@ -225,6 +231,8 @@ asio::awaitable<void> ServerUnit::_IoSend()
 	{
 		LOGGER_ERROR("ServerUnit::_IoSend error:{}", e.what());
 	}
+
+	_sending = false;
 }
 
 asio::awaitable<void> ServerUnit::_IoListen(PORT port)

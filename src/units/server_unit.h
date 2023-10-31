@@ -87,6 +87,8 @@ private:
 	OnRecvFunc _on_recv;
 	char _recv_buffer[MESSAGE_BODY_SIZE];
 	OnDiscFunc _on_disc;
+
+	bool _sending = false;
 };
 
 class Peer
