@@ -68,9 +68,6 @@ private:
 	bool _exit = false;
 	intvl_t _interval;
 	UpdateFunc _update;
-	bool _ready = false;
-	std::condition_variable _cv;
-	std::mutex _mutex;
 };
 
 NAMESPACE_CLOSE
