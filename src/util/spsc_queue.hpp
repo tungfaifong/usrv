@@ -20,18 +20,17 @@ public:
 
 #ifdef __cpp_lib_hardware_interference_size
 	static constexpr size_t CACHELINE_SIZE = std::hardware_destructive_interference_size;
-	static constexpr size_t BLOCK_SIZE = CACHELINE_SIZE;
 #else
 	static constexpr size_t CACHELINE_SIZE = 64;
-	static constexpr size_t BLOCK_SIZE = CACHELINE_SIZE;
 #endif
+	static constexpr size_t BLOCK_SIZE = CACHELINE_SIZE;
 
 	struct Header
 	{
 		uint16_t size;
 		uint16_t data16;
 		uint32_t data32;
-	};
+	}__attribute__((aligned(CACHELINE_SIZE)));
 	static constexpr size_t HEADER_SIZE = sizeof(Header);
 
 	SpscQueue(size_t block_num):_block_num(block_num), _bytes(_block_num * BLOCK_SIZE)
