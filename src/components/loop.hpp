@@ -45,9 +45,7 @@ public:
 			}
 			else
 			{
-				std::unique_lock<std::mutex> lock(_mutex);
-				_cv.wait_for(lock, ms_t(_interval - interval), [this]{ return this->_ready; });
-				_ready = false;
+				std::this_thread::sleep_for(ns_t(1));
 				busy = true;
 			}
 		}
@@ -64,11 +62,6 @@ public:
 
 	void Notify()
 	{
-		{
-			std::unique_lock<std::mutex> lock(_mutex);
-			_ready = true;
-		}
-		_cv.notify_one();
 	}
 
 private:

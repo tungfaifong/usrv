@@ -8,9 +8,31 @@
 
 using namespace usrv;
 
+class Stat
+{
+public:
+	Stat() {}
+	~Stat() = default;
+
+	void static ClientDone(intvl_t delay)
+	{
+		total_delay += delay;
+		client_num -= 1;
+		if(client_num == 0)
+		{
+			UnitManager::Instance()->SetExit(true);
+		}
+	}
+
+	static uint32_t client_num;
+	static intvl_t total_delay;
+};
+
+uint32_t Stat::client_num = 0;
+intvl_t Stat::total_delay = 0;
+
 class Client;
 
-uint32_t g_TotalCnt = 0;
 std::unordered_map<NETID, std::shared_ptr<Client>> g_Clients;
 
 class Client : public Unit, public std::enable_shared_from_this<Client>
@@ -25,39 +47,51 @@ public:
 
 	NETID _server_net_id = INVALID_NET_ID;
 	uint32_t _req_num = 0;
+	intvl_t _delay = 0;
+	sys_clock_t _send_clock;
+	sys_clock_t _recv_clock;
 };
 
 bool Client::Start()
 {
-	_server_net_id = server::Connect("127.0.0.1", 6666, 1000);
+	_server_net_id = server::Connect("127.0.0.1", 6666);
 	if(_server_net_id == INVALID_NET_ID)
 	{
 		LOGGER_ERROR("client connect failed.");
 		return false;
 	}
 	g_Clients[_server_net_id] = shared_from_this();
-	for(uint32_t i = 0; i < _req_num; ++i)
-	{
-		Send();
-	}
+	Send();
 	return true;
 }
 
 void Client::OnRecv(NETID net_id, char * data, uint16_t size)
 {
-	++g_TotalCnt;
-	Send();
+	_recv_clock = SysNow();
+	_delay += Ns2Ms(_recv_clock - _send_clock);
+	--_req_num;
+	if(_req_num > 0)
+	{
+		Send();
+	}
+	else
+	{
+		Stat::ClientDone(_delay);
+	}
 }
 
 void Client::Send()
 {
 	const char * buff = "echo check 1 check 2;";
 	server::Send(_server_net_id, buff, strlen(buff));
+	_send_clock = SysNow();
 }
 
-bool run_client(uint32_t client_num, uint32_t req_num, uint32_t time)
+bool run_client(uint32_t client_num, uint32_t req_num)
 {
-	UnitManager::Instance()->Init(10);
+	Stat::client_num = client_num;
+
+	UnitManager::Instance()->Init(0);
 	UnitManager::Instance()->Register("LOGGER", std::move(std::make_shared<LoggerUnit>(LoggerUnit::LEVEL::TRACE, "/logs/client.log", 1 Mi)));
 	UnitManager::Instance()->Register("TIMER", std::move(std::make_shared<TimerUnit>(1 Ki, 1 Ki)));
 	UnitManager::Instance()->Register("SERVER", std::move(std::make_shared<ServerUnit>(1 Ki, 1 Ki, 4 Mi)));
@@ -86,11 +120,12 @@ bool run_client(uint32_t client_num, uint32_t req_num, uint32_t time)
 		LOGGER_INFO("conn: net_id:{}", net_id);
 	});
 
-	timer::CreateTimer(time, [](){UnitManager::Instance()->SetExit(true);});
-
+	sys_clock_t start_clock = SysNow();
 	UnitManager::Instance()->Run();
+	sys_clock_t end_clock = SysNow();
 
-	std::cout << "qps:" << g_TotalCnt / (time / 1000) << std::endl;
+	std::cout << "qps:" << (req_num * client_num) / (static_cast<double>(Ns2Ms(end_clock - start_clock)) / 1000) << std::endl;
+	std::cout << "avg delay:" << static_cast<double>(Stat::total_delay) / (req_num * client_num) << std::endl;
 
 	return true;
 }
