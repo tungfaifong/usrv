@@ -61,7 +61,7 @@ bool Client::Start()
 void Client::OnRecv(NETID net_id, char * data, uint16_t size)
 {
 	_recv_clock = SysNow();
-	Stat::total_delay += Ns2Ms(_recv_clock - _send_clock);
+	Stat::total_delay += (_recv_clock - _send_clock).count();
 	--Stat::req_num;
 	if(Stat::req_num > 0)
 	{
@@ -145,8 +145,8 @@ bool run_client(uint32_t client_num, uint32_t req_num)
 	UnitManager::Instance()->Run();
 	Stat::end_clock = SysNow();
 
-	std::cout << "qps:" << req_num / (static_cast<double>(Ns2Ms(Stat::end_clock - Stat::start_clock)) / 1000) << std::endl;
-	std::cout << "avg delay:" << static_cast<double>(Stat::total_delay) / req_num << std::endl;
+	std::cout << "rps:" << req_num / (static_cast<double>((Stat::end_clock - Stat::start_clock).count()) / 1000000000) << std::endl;
+	std::cout << "avg delay:" << (static_cast<double>(Stat::total_delay) / 1000000) / req_num << std::endl;
 
 	return true;
 }
