@@ -14,25 +14,29 @@
 
 NAMESPACE_OPEN
 
+enum class MSGTYPE
+{
+	MSGT_CONN = 0,
+	MSGT_RECV,
+	MSGT_DISC,
+};
+
+static constexpr uint8_t IP_LEN_SIZE = sizeof(uint8_t);
+static constexpr uint8_t IP_SIZE = 39;
+static constexpr uint8_t PORT_SIZE = sizeof(PORT);
+static constexpr uint8_t CONN_BUFFER_SIZE = IP_LEN_SIZE + IP_SIZE + PORT_SIZE;
+
+using OnConnFunc = std::function<void(NETID, IP, PORT)>;
+using OnRecvFunc = std::function<void(NETID, const char *, uint16_t)>;
+using OnDiscFunc = std::function<void(NETID)>;
+
+class Server;
 class Peer;
 
 class ServerUnit : public Unit, public std::enable_shared_from_this<ServerUnit>
 {
 public:
-	static constexpr uint16_t OPF = 1024;	// operation per frame
-
-	enum class MSGTYPE
-	{
-		MSGT_CONN = 0,
-		MSGT_RECV,
-		MSGT_DISC,
-	};
-	
-	using OnConnFunc = std::function<void(NETID, IP, PORT)>;
-	using OnRecvFunc = std::function<void(NETID, char *, uint16_t)>;
-	using OnDiscFunc = std::function<void(NETID)>;
-
-	ServerUnit(size_t pp_alloc_num, size_t ps_alloc_num, size_t spsc_blk_num);
+	ServerUnit(size_t thread_num, size_t pp_alloc_num, size_t ps_alloc_num, size_t spsc_blk_num);
 	virtual ~ServerUnit() = default;
 
 	virtual bool Init() override final;
@@ -43,7 +47,7 @@ public:
 
 public:
 	void Listen(PORT port);
-	NETID Connect(const IP & ip, PORT port);
+	void Connect(const IP & ip, PORT port, OnConnFunc callback);
 	void Disconnect(NETID net_id);
 	bool Send(NETID net_id, const char * data, uint16_t size);
 	void OnConn(OnConnFunc func);
@@ -52,45 +56,64 @@ public:
 	size_t PeersNum();
 
 private:
-	bool _Recv(NETID & net_id, MSGTYPE & msg_type, char * data, uint16_t & size);
-	void _IoInit();
-	asio::awaitable<void> _IoSend();
-	asio::awaitable<void> _IoListen(PORT port);
-	asio::awaitable<void> _IoConnect(const IP & ip, PORT port, std::promise<NETID> && promise_net_id);
-	void _IoDisconnect(NETID net_id);
-	asio::awaitable<void> _IoRecv(NETID net_id, const char * data, uint16_t size, MSGTYPE msg_type = MSGTYPE::MSGT_RECV);
-	asio::awaitable<NETID> _IoAddPeer(asio::ip::tcp::socket && socket);
-	asio::awaitable<void> _IoDelPeer(NETID net_id);
+	bool _Recv(NETID & net_id, const MSGTYPE & msg_type, const char * data, const uint16_t & size);
 
 private:
-	friend class Peer;
+	friend class Server;
 
-	std::thread _io_thread;
-	asio::io_context _io_context;
-	asio::executor_work_guard<asio::io_context::executor_type> _work_guard;
-	intvl_t _io_interval = 0;
-	asio::steady_timer _io_recv_timer;
+	size_t _thread_num;
+	size_t _pp_alloc_num;
+	size_t _ps_alloc_num;
+	size_t _spsc_blk_num;
+	std::vector<std::shared_ptr<asio::io_context>> _io_contexts;
+	std::vector<asio::executor_work_guard<asio::io_context::executor_type>> _work_guards;
+	std::vector<std::shared_ptr<Server>> _servers;
+	std::vector<std::shared_ptr<std::thread>> _io_threads;
 
-	ObjectPool<Peer> _peer_pool;
-	ObjectMap<Peer> _peers;
-
-	SpscQueue _send_queue;
-	SpscQueue _recv_queue;
-	char _send_buffer[MESSAGE_BODY_SIZE];
-
-	static constexpr uint8_t IP_LEN_SIZE = sizeof(uint8_t);
-	static constexpr uint8_t IP_SIZE = 39;
-	static constexpr uint8_t PORT_SIZE = sizeof(PORT);
-	static constexpr uint8_t CONN_BUFFER_SIZE = IP_LEN_SIZE + IP_SIZE + PORT_SIZE;
 	OnConnFunc _on_conn;
-	char _conn_buffer[CONN_BUFFER_SIZE];
 	OnRecvFunc _on_recv;
-	char _recv_buffer[MESSAGE_BODY_SIZE];
 	OnDiscFunc _on_disc;
 
 	bool _sending = false;
 };
 
+class Server : public std::enable_shared_from_this<Server>
+{
+public:
+	Server(asio::io_context & io_context, size_t tid, size_t pp_alloc_num, size_t ps_alloc_num, size_t spsc_blk_num, const std::shared_ptr<ServerUnit> & unit);
+	virtual ~Server() = default;
+
+	// 可以被主线程调用
+	void Listen(PORT port);
+	void Connect(const IP & ip, PORT port, OnConnFunc callback);
+	void Disconnect(PEERID pid);
+	bool Send(PEERID pid, const char * data, uint16_t size);
+
+private:
+	// 在io_context中跑
+	asio::awaitable<void> _Listen(PORT port);
+	bool _Recv(PEERID & pid, const MSGTYPE & msg_type, const char * data, const uint16_t & size);
+	asio::awaitable<void> _Send(PEERID pid, const char * data, uint16_t size);
+	asio::awaitable<void> _Connect(const IP ip, PORT port, OnConnFunc callback);
+	void _Disconnect(PEERID pid);
+	PEERID _AddPeer(asio::ip::tcp::socket && socket);
+	void _DelPeer(PEERID pid);
+
+private:
+	friend class Peer;
+
+	asio::io_context & _io_context;
+	size_t _tid = -1;
+	ObjectPool<Peer> _peer_pool;
+	ObjectMap<Peer> _peers;
+
+	std::shared_ptr<ServerUnit> _server_unit;
+
+	char _conn_buffer[CONN_BUFFER_SIZE];
+	// char _recv_buffer[MESSAGE_BODY_SIZE];
+};
+
+// 在server的io_context运行
 class Peer
 {
 public:
@@ -98,7 +121,7 @@ public:
 	virtual ~Peer() = default;
 
 public:
-	void Start(NETID net_id, asio::ip::tcp::socket && socket, const std::shared_ptr<ServerUnit> & server);
+	void Start(PEERID pid, asio::ip::tcp::socket && socket, const std::shared_ptr<Server> & server);
 	void Stop();
 	void Release();
 	asio::awaitable<void> Send(const char * data, uint16_t size);
@@ -107,12 +130,12 @@ public:
 
 private:
 	asio::awaitable<void> _Recv();
-	asio::awaitable<void> _CheckRelease();
+	void _CheckRelease();
 
 private:
-	NETID _net_id = INVALID_NET_ID;
+	PEERID _pid = INVALID_PEER_ID;
 	std::shared_ptr<asio::ip::tcp::socket> _socket;
-	std::shared_ptr<ServerUnit> _server;
+	std::shared_ptr<Server> _server;
 	char _send_buffer[MESSAGE_HEAD_SIZE + MESSAGE_BODY_SIZE];
 	char _recv_buffer[MESSAGE_BODY_SIZE];
 	bool _wait_to_release;

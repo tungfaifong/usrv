@@ -9,20 +9,31 @@
 NAMESPACE_OPEN
 
 // ServerUnit
-ServerUnit::ServerUnit(size_t pp_alloc_num, size_t ps_alloc_num, size_t spsc_blk_num): _work_guard(asio::make_work_guard(_io_context)),
-	_io_recv_timer(_io_context),
-	_peer_pool(pp_alloc_num), _peers(ps_alloc_num), 
-	_send_queue(spsc_blk_num), _recv_queue(spsc_blk_num)
+ServerUnit::ServerUnit(size_t thread_num, size_t pp_alloc_num, size_t ps_alloc_num, size_t spsc_blk_num): _thread_num(thread_num),
+	_pp_alloc_num(pp_alloc_num),
+	_ps_alloc_num(ps_alloc_num),
+	_spsc_blk_num(spsc_blk_num)
 {
 }
 
 bool ServerUnit::Init()
 {
-	_io_interval = _mgr->Interval();
-
-	_io_thread = std::thread([self = shared_from_this()](){
-		self->_IoInit();
-	});
+	if(_thread_num == 0)
+	{
+		_servers.push_back(std::move(std::make_shared<Server>(UnitManager::Instance()->IOContext(), 0, _pp_alloc_num, _ps_alloc_num, _spsc_blk_num, shared_from_this())));
+	}
+	else
+	{
+		for(size_t i = 0; i < _thread_num; ++i)
+		{
+			_io_contexts.emplace_back(new asio::io_context());
+			_work_guards.emplace_back(asio::make_work_guard(*_io_contexts[i]));
+			_servers.emplace_back(std::move(std::make_shared<Server>(*_io_contexts[i], i, _pp_alloc_num, _ps_alloc_num, _spsc_blk_num, shared_from_this())));
+			_io_threads.emplace_back(new std::thread([this, &i](){
+				_io_contexts[i]->run();
+			}));
+		}
+	}
 
 	return true;
 }
@@ -52,48 +63,52 @@ bool ServerUnit::Start()
 
 bool ServerUnit::Update(intvl_t interval)
 {
-	auto busy = false;
-	NETID net_id;
-	MSGTYPE msg_type;
-	uint16_t size;
-	auto cnt = 0;
-	while(_Recv(net_id, msg_type, _recv_buffer, size))
-	{
-		switch(msg_type)
-		{
-			case MSGTYPE::MSGT_CONN:
-			{
-				uint8_t ip_len = 0;
-				memcpy(&ip_len, _recv_buffer, IP_LEN_SIZE);
-				auto ip = std::string(_recv_buffer + IP_LEN_SIZE, ip_len);
-				PORT port = 0;
-				memcpy(&port, _recv_buffer + IP_LEN_SIZE + IP_SIZE, PORT_SIZE);
-				_on_conn(net_id, std::move(ip), port);
-			}
-			break;
-			case MSGTYPE::MSGT_RECV:
-			{
-				_on_recv(net_id, _recv_buffer, size);
-			}
-			break;
-			case MSGTYPE::MSGT_DISC:
-			{
-				_on_disc(net_id);
-			}
-			break;
-		}
-		busy = true;
-		if(++cnt >= OPF) break;
-	}
-	return busy;
+	// auto busy = false;
+	// NETID net_id;
+	// MSGTYPE msg_type;
+	// uint16_t size;
+	// auto cnt = 0;
+	// while(_Recv(net_id, msg_type, _recv_buffer, size))
+	// {
+	// 	switch(msg_type)
+	// 	{
+	// 		case MSGTYPE::MSGT_CONN:
+	// 		{
+	// 			uint8_t ip_len = 0;
+	// 			memcpy(&ip_len, _recv_buffer, IP_LEN_SIZE);
+	// 			auto ip = std::string(_recv_buffer + IP_LEN_SIZE, ip_len);
+	// 			PORT port = 0;
+	// 			memcpy(&port, _recv_buffer + IP_LEN_SIZE + IP_SIZE, PORT_SIZE);
+	// 			_on_conn(net_id, std::move(ip), port);
+	// 		}
+	// 		break;
+	// 		case MSGTYPE::MSGT_RECV:
+	// 		{
+	// 			_on_recv(net_id, _recv_buffer, size);
+	// 		}
+	// 		break;
+	// 		case MSGTYPE::MSGT_DISC:
+	// 		{
+	// 			_on_disc(net_id);
+	// 		}
+	// 		break;
+	// 	}
+	// 	busy = true;
+	// 	if(++cnt >= OPF) break;
+	// }
+	// return busy;
+	return true;
 }
 
 void ServerUnit::Stop()
 {
-	_io_context.stop();
-	if(_io_thread.joinable())
+	for(size_t i = 0; i < _io_threads.size(); ++i)
 	{
-		_io_thread.join();
+		_io_contexts[i]->stop();
+		if(_io_threads[i]->joinable())
+		{
+			_io_threads[i]->join();
+		}
 	}
 }
 
@@ -107,51 +122,25 @@ void ServerUnit::Release()
 
 void ServerUnit::Listen(PORT port)
 {
-	asio::co_spawn(_io_context, _IoListen(port), asio::detached);
+	for(size_t i = 0; i < _servers.size(); ++i)
+	{
+		_servers[i]->Listen(port);
+	}
 }
 
-NETID ServerUnit::Connect(const IP & ip, PORT port)
+void ServerUnit::Connect(const IP & ip, PORT port, OnConnFunc callback)
 {
-	try
-	{
-		std::promise<NETID> promise_net_id;
-		auto future_net_id = promise_net_id.get_future();
-		asio::co_spawn(_io_context, _IoConnect(ip, port, std::move(promise_net_id)), asio::detached);
-		future_net_id.wait();
-		return future_net_id.get();
-	}
-	catch(const std::system_error & e)
-	{
-		LOGGER_ERROR("ServerUnit::Connect error:{}", e.what());
-		return INVALID_NET_ID;
-	}
+	_servers[0]->Connect(ip, port, callback);
 }
 
 void ServerUnit::Disconnect(NETID net_id)
 {
-	asio::post(_io_context, [self = shared_from_this(), &net_id](){
-		self->_IoDisconnect(net_id);
-	});
+	_servers[net_id.tid]->Disconnect(net_id.pid);
 }
 
 bool ServerUnit::Send(NETID net_id, const char * data, uint16_t size)
 {
-	if(size > MESSAGE_BODY_SIZE)
-	{
-		LOGGER_ERROR("Send size too large size:{} max_size:{}", size, MESSAGE_BODY_SIZE);
-		return false;
-	}
-
-	SpscQueue::Header header;
-	header.size = size;
-	header.data16 = net_id;
-	header.data32 = 0;
-
-	_send_queue.Push(data, header);
-
-	asio::co_spawn(_io_context, _IoSend(), asio::detached);
-
-	return true;
+	return _servers[net_id.tid]->Send(net_id.pid, data, size);
 }
 
 void ServerUnit::OnConn(OnConnFunc func)
@@ -171,71 +160,90 @@ void ServerUnit::OnDisc(OnDiscFunc func)
 
 size_t ServerUnit::PeersNum()
 {
-	std::promise<size_t> promise_num;
-	auto future_num = promise_num.get_future();
-	asio::post(_io_context, [self = shared_from_this(), &promise_num](){
-		promise_num.set_value(self->_peers.Size());
-	});
-	return future_num.get();
+	// std::promise<size_t> promise_num;
+	// auto future_num = promise_num.get_future();
+	// asio::post(_io_context, [self = shared_from_this(), &promise_num](){
+	// 	promise_num.set_value(self->_peers.Size());
+	// });
+	// return future_num.get();
+	return 0;
 }
 
-bool ServerUnit::_Recv(NETID & net_id, MSGTYPE & msg_type, char * data, uint16_t & size)
+bool ServerUnit::_Recv(NETID & net_id, const MSGTYPE & msg_type, const char * data, const uint16_t & size)
 {
-	SpscQueue::Header header;
-
-	if(!_recv_queue.TryPop(data, header))
+	switch(msg_type)
 	{
-		return false;
+		case MSGTYPE::MSGT_CONN:
+		{
+			uint8_t ip_len = 0;
+			memcpy(&ip_len, data, IP_LEN_SIZE);
+			auto ip = std::string(data + IP_LEN_SIZE, ip_len);
+			PORT port = 0;
+			memcpy(&port, data + IP_LEN_SIZE + IP_SIZE, PORT_SIZE);
+			_on_conn(net_id, std::move(ip), port);
+		}
+		break;
+		case MSGTYPE::MSGT_RECV:
+		{
+			_on_recv(net_id, data, size);
+		}
+		break;
+		case MSGTYPE::MSGT_DISC:
+		{
+			_on_disc(net_id);
+		}
+		break;
 	}
-
-	size = header.size;
-	net_id = header.data16;
-	msg_type = (MSGTYPE)header.data32;
 
 	return true;
 }
 
-void ServerUnit::_IoInit()
+// Server
+Server::Server(asio::io_context & io_context, size_t tid, size_t pp_alloc_num, size_t ps_alloc_num, size_t spsc_blk_num, const std::shared_ptr<ServerUnit> & unit): _io_context(io_context),
+	_tid(tid),
+	_peer_pool(pp_alloc_num), _peers(ps_alloc_num),
+	_server_unit(unit)
 {
-	_io_context.run();
 }
 
-asio::awaitable<void> ServerUnit::_IoSend()
+void Server::Listen(PORT port)
 {
-	if(_sending)
-	{
-		co_return;
-	}
-	_sending = true;
+	asio::co_spawn(_io_context, _Listen(port), asio::detached);
+}
 
+void Server::Connect(const IP & ip, PORT port, OnConnFunc callback)
+{
 	try
 	{
-		while(!_send_queue.Empty())
-		{
-			SpscQueue::Header header;
-
-			if(!_send_queue.TryPop(_send_buffer, header))
-			{
-				continue;
-			}
-
-			if(!_peers.Find(header.data16))
-			{
-				continue;
-			}
-
-			co_await _peers[header.data16]->Send(_send_buffer, header.size);
-		}
+		asio::co_spawn(_io_context, _Connect(ip, port, callback), asio::detached);
 	}
 	catch(const std::system_error & e)
 	{
-		LOGGER_ERROR("ServerUnit::_IoSend error:{}", e.what());
+		LOGGER_ERROR("ServerUnit::Connect error:{}", e.what());
 	}
-
-	_sending = false;
 }
 
-asio::awaitable<void> ServerUnit::_IoListen(PORT port)
+void Server::Disconnect(PEERID pid)
+{
+	asio::post(_io_context, [self = shared_from_this(), &pid](){
+		self->_Disconnect(pid);
+	});
+}
+
+bool Server::Send(PEERID pid, const char * data, uint16_t size)
+{
+	if(size > MESSAGE_BODY_SIZE)
+	{
+		LOGGER_ERROR("Send size too large size:{} max_size:{}", size, MESSAGE_BODY_SIZE);
+		return false;
+	}
+
+	asio::co_spawn(_io_context, _Send(pid, data, size), asio::detached);
+
+	return true;
+}
+
+asio::awaitable<void> Server::_Listen(PORT port)
 {
 	try
 	{
@@ -243,17 +251,40 @@ asio::awaitable<void> ServerUnit::_IoListen(PORT port)
 		while(true)
 		{
 			auto socket = co_await acceptor.async_accept(asio::use_awaitable);
-			co_await _IoAddPeer(std::move(socket));
+			_AddPeer(std::move(socket));
 		}
 	}
 	catch(const std::system_error & e)
 	{
-		LOGGER_ERROR("ServerUnit::_IoListen error:{}", e.what());
-		Listen(port);
+		LOGGER_ERROR("ServerUnit::_Listen error:{}", e.what());
 	}
 }
 
-asio::awaitable<void> ServerUnit::_IoConnect(const IP & ip, PORT port, std::promise<NETID> && promise_net_id)
+bool Server::_Recv(PEERID & pid, const MSGTYPE & msg_type, const char * data, const uint16_t & size)
+{
+	NETID nid;
+	nid.tid = _tid;
+	nid.pid = pid;
+	return _server_unit->_Recv(nid, msg_type, data, size);
+}
+
+asio::awaitable<void> Server::_Send(PEERID pid, const char * data, uint16_t size)
+{
+	try
+	{
+		if(!_peers.Find(pid))
+		{
+			co_return;
+		}
+		co_await _peers[pid]->Send(data, size);
+	}
+	catch(const std::system_error & e)
+	{
+		LOGGER_ERROR("ServerUnit::_Send error:{}", e.what());
+	}
+}
+
+asio::awaitable<void> Server::_Connect(const IP ip, PORT port, OnConnFunc callback)
 {
 	try
 	{
@@ -261,45 +292,32 @@ asio::awaitable<void> ServerUnit::_IoConnect(const IP & ip, PORT port, std::prom
 		auto socket = asio::ip::tcp::socket(_io_context);
 		auto endpoint = resolver.resolve(ip, std::to_string(port));
 		co_await asio::async_connect(socket, endpoint, asio::use_awaitable);
-		auto net_id = co_await _IoAddPeer(std::move(socket));
-		promise_net_id.set_value(net_id);
+		auto pid = _AddPeer(std::move(socket));
+		NETID nid;
+		nid.tid = _tid;
+		nid.pid = pid;
+		callback(nid, std::move(ip), port);
 	}
 	catch(const std::system_error & e)
 	{
-		promise_net_id.set_exception(std::make_exception_ptr(e));
-		LOGGER_ERROR("ServerUnit::_IoConnect error:{}", e.what());
+		LOGGER_ERROR("ServerUnit::_Connect error:{}", e.what());
 	}
 }
 
-void ServerUnit::_IoDisconnect(NETID net_id)
+void Server::_Disconnect(PEERID pid)
 {
-	if(!_peers.Find(net_id))
+	if(!_peers.Find(pid))
 	{
 		return;
 	}
-	_peers[net_id]->Stop();
+	_peers[pid]->Stop();
 }
 
-asio::awaitable<void> ServerUnit::_IoRecv(NETID net_id, const char * data, uint16_t size, MSGTYPE msg_type /* = MSGTYPE::MSGT_RECV */)
+PEERID Server::_AddPeer(asio::ip::tcp::socket && socket)
 {
-	SpscQueue::Header header;
-	header.size = size;
-	header.data16 = net_id;
-	header.data32 = static_cast<uint32_t>(msg_type);
-	while(!_recv_queue.TryPush(data, header))
-	{
-		_io_recv_timer.expires_after(ms_t(_io_interval));
-		asio::error_code ec;
-		co_await _io_recv_timer.async_wait(redirect_error(asio::use_awaitable, ec));
-	}
-	_mgr->LoopNotify();
-}
-
-asio::awaitable<NETID> ServerUnit::_IoAddPeer(asio::ip::tcp::socket && socket)
-{
-	auto net_id = _peers.Insert(std::move(_peer_pool.Get()));
-	auto peer = _peers[net_id];
-	peer->Start(net_id, std::move(socket), shared_from_this());
+	auto pid = _peers.Insert(std::move(_peer_pool.Get()));
+	auto peer = _peers[pid];
+	peer->Start(pid, std::move(socket), shared_from_this());
 
 	auto ip = peer->Ip();
 	auto ip_len = (uint8_t)ip.size();
@@ -309,24 +327,24 @@ asio::awaitable<NETID> ServerUnit::_IoAddPeer(asio::ip::tcp::socket && socket)
 	memcpy(_conn_buffer + IP_LEN_SIZE, ip.c_str(), IP_SIZE);
 	memcpy(_conn_buffer + IP_LEN_SIZE + IP_SIZE, &port, PORT_SIZE);
 
-	co_await _IoRecv(net_id, _conn_buffer, CONN_BUFFER_SIZE, MSGTYPE::MSGT_CONN);
+	_Recv(pid, MSGTYPE::MSGT_CONN, _conn_buffer, CONN_BUFFER_SIZE);
 
-	co_return net_id;
+	return pid;
 }
 
-asio::awaitable<void> ServerUnit::_IoDelPeer(NETID net_id)
+void Server::_DelPeer(PEERID pid)
 {
-	_peers[net_id]->Release();
-	_peer_pool.Put(std::move(_peers[net_id]));
-	_peers.Erase(net_id);
+	_peers[pid]->Release();
+	_peer_pool.Put(std::move(_peers[pid]));
+	_peers.Erase(pid);
 
-	co_await _IoRecv(net_id, "", 0, MSGTYPE::MSGT_DISC);
+	_Recv(pid, MSGTYPE::MSGT_DISC, "", 0);
 }
 
 // Peer
-void Peer::Start(NETID net_id, asio::ip::tcp::socket && socket, const std::shared_ptr<ServerUnit> & server)
+void Peer::Start(PEERID pid, asio::ip::tcp::socket && socket, const std::shared_ptr<Server> & server)
 {
-	_net_id = net_id;
+	_pid = pid;
 	_socket = std::make_shared<asio::ip::tcp::socket>(std::move(socket));
 	_server = server;
 	_wait_to_release = false;
@@ -359,7 +377,7 @@ void Peer::Stop()
 
 void Peer::Release()
 {
-	_net_id = INVALID_NET_ID;
+	_pid = INVALID_PEER_ID;
 	_socket = nullptr;
 	_server = nullptr;
 }
@@ -380,10 +398,10 @@ asio::awaitable<void> Peer::Send(const char * data, uint16_t size)
 		{
 			LOGGER_ERROR("Peer::Send error:{}", e.what());
 		}
-		_server->_IoDisconnect(_net_id);
+		_server->_Disconnect(_pid);
 	}
 	--_sending;
-	co_await _CheckRelease();
+	_CheckRelease();
 }
 
 IP Peer::Ip()
@@ -410,7 +428,7 @@ asio::awaitable<void> Peer::_Recv()
 			body_size = ntohs(body_size);
 			co_await asio::async_read(*_socket, asio::buffer(_recv_buffer, body_size), asio::use_awaitable);
 
-			co_await _server->_IoRecv(_net_id, _recv_buffer, body_size);
+			_server->_Recv(_pid, MSGTYPE::MSGT_RECV, _recv_buffer, body_size);
 		}
 	}
 	catch (const std::system_error & e)
@@ -419,19 +437,19 @@ asio::awaitable<void> Peer::_Recv()
 		{
 			LOGGER_ERROR("Peer::_Recv error:{}", e.what());
 		}
-		_server->_IoDisconnect(_net_id);
+		_server->_Disconnect(_pid);
 	}
 	_recving = false;
-	co_await _CheckRelease();
+	_CheckRelease();
 }
 
-asio::awaitable<void> Peer::_CheckRelease()
+void Peer::_CheckRelease()
 {
 	if(!_wait_to_release || _sending > 0 || _recving)
 	{
-		co_return;
+		return;
 	}
-	co_await _server->_IoDelPeer(_net_id);
+	_server->_DelPeer(_pid);
 }
 
 NAMESPACE_CLOSE

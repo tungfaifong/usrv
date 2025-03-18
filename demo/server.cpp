@@ -6,6 +6,10 @@
 #include "units/server_unit.h"
 #include "units/timer_unit.h"
 
+#include "interfaces/logger_interface.h"
+#include "interfaces/server_interface.h"
+#include "interfaces/timer_interface.h"
+
 using namespace usrv;
 
 void SignalHandler(int signum)
@@ -16,6 +20,18 @@ void SignalHandler(int signum)
 	}
 }
 
+class ServerMgr : public Unit, public std::enable_shared_from_this<ServerMgr>
+{
+public:
+	virtual bool Start();
+};
+
+bool ServerMgr::Start() {
+	auto server = std::dynamic_pointer_cast<ServerUnit>(UnitManager::Instance()->Get("SERVER"));
+	server->Listen(6666);
+	return true;
+}
+
 bool run_server(intvl_t interval)
 {
 	signal(SIGUSR1, SignalHandler);
@@ -23,20 +39,18 @@ bool run_server(intvl_t interval)
 	UnitManager::Instance()->Init(interval);
 
 	UnitManager::Instance()->Register("LOGGER", std::move(std::make_shared<LoggerUnit>(LoggerUnit::LEVEL::TRACE, "/logs/server.log", 1 Mi)));
-	UnitManager::Instance()->Register("SERVER", std::move(std::make_shared<ServerUnit>(1 Ki, 1 Ki, 1 Mi)));
+	UnitManager::Instance()->Register("SERVER", std::move(std::make_shared<ServerUnit>(0, 1 Ki, 1 Ki, 1 Mi)));
 	UnitManager::Instance()->Register("TIMER", std::move(std::make_shared<TimerUnit>(1 Ki, 1 Ki)));
 	UnitManager::Instance()->Register("LUA", std::move(std::make_shared<LuaUnit>("/main.lua")));
-
-	auto server = std::dynamic_pointer_cast<ServerUnit>(UnitManager::Instance()->Get("SERVER"));
-	server->Listen(6666);
-
+	UnitManager::Instance()->Register("ServerMgr", std::move(std::make_shared<ServerMgr>()));
 	auto lua = std::dynamic_pointer_cast<LuaUnit>(UnitManager::Instance()->Get("LUA"));
+	auto server = std::dynamic_pointer_cast<ServerUnit>(UnitManager::Instance()->Get("SERVER"));
 
 	server->OnConn([&lua](NETID net_id, IP ip, PORT port) {
 		lua->OnConn(net_id, ip, port);
 	});
 
-	server->OnRecv([&lua](NETID net_id, char * data, uint16_t size) {
+	server->OnRecv([&lua](NETID net_id, const char * data, uint16_t size) {
 		lua->OnRecv(net_id, data, size);
 	});
 

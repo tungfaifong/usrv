@@ -25,12 +25,30 @@ static constexpr uint32_t USRV_VERSION = 0001000;
 #define Mi Ki Ki
 
 using intvl_t = uint64_t;
-using NETID = size_t;
+using TID = size_t;
+using PEERID = size_t;
 using IP = std::string;
 using PORT = uint16_t;
 using TIMERID = size_t;
 
-static constexpr NETID INVALID_NET_ID = -1;
+static constexpr TID INVALID_TID = SIZE_MAX;
+static constexpr PEERID INVALID_PEER_ID = SIZE_MAX;
+struct NETID {
+	TID tid = INVALID_TID;
+	PEERID pid = INVALID_PEER_ID;
+	bool operator==(const NETID& other) const {
+	return tid == other.tid && pid == other.pid;
+	}
+};
+
+struct NETIDHash {
+	bool operator()(const NETID& nid) const {
+		return (nid.tid * 31) ^ nid.pid;
+	}
+};
+
+static constexpr NETID INVALID_NET_ID{INVALID_TID, INVALID_PEER_ID};
+
 extern IP DEFAULT_IP; // {""}
 static constexpr PORT DEFAULT_PORT = 0;
 static constexpr TIMERID INVALID_TIMER_ID = -1;

@@ -163,6 +163,10 @@ bool LuaUnit::InitFunc(std::shared_ptr<luabridge::LuaRef> & func, const char * f
 void LuaUnit::_Expose()
 {
 	GetGlobalNamespace()
+		.beginClass<NETID>("NETID")
+			.addData("tid", &NETID::tid)
+			.addData("pid", &NETID::pid)
+		.endClass()
 		.beginNamespace("engine")
 			.addFunction("Now", Now)
 			.addFunction("NowMs", NowMs)
