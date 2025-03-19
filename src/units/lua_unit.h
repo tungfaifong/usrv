@@ -32,7 +32,7 @@ public:
 	luabridge::Namespace GetGlobalNamespace();
 
 	void OnConn(NETID net_id, const IP & ip, PORT port);
-	void OnRecv(NETID net_id, const char * data, uint16_t size);
+	void OnRecv(NETID net_id, const std::string & msg);
 	void OnDisc(NETID net_id);
 	static void OnException(const luabridge::LuaException & e);
 

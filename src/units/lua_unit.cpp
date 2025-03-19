@@ -120,11 +120,11 @@ void LuaUnit::OnConn(NETID net_id, const IP & ip, PORT port)
 	}
 }
 
-void LuaUnit::OnRecv(NETID net_id, const char * data, uint16_t size)
+void LuaUnit::OnRecv(NETID net_id, const std::string & msg)
 {
 	try
 	{
-		(*_on_recv)(net_id, std::string(data, size));
+		(*_on_recv)(net_id, msg);
 	}
 	catch(const luabridge::LuaException & e)
 	{

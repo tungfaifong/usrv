@@ -138,9 +138,9 @@ void ServerUnit::Disconnect(NETID net_id)
 	_servers[net_id.tid]->Disconnect(net_id.pid);
 }
 
-bool ServerUnit::Send(NETID net_id, const char * data, uint16_t size)
+bool ServerUnit::Send(NETID net_id, std::string && msg)
 {
-	return _servers[net_id.tid]->Send(net_id.pid, data, size);
+	return _servers[net_id.tid]->Send(net_id.pid, msg);
 }
 
 void ServerUnit::OnConn(OnConnFunc func)
@@ -169,23 +169,23 @@ size_t ServerUnit::PeersNum()
 	return 0;
 }
 
-bool ServerUnit::_Recv(NETID & net_id, const MSGTYPE & msg_type, const char * data, const uint16_t & size)
+bool ServerUnit::_Recv(NETID & net_id, const MSGTYPE & msg_type, std::string && msg)
 {
 	switch(msg_type)
 	{
 		case MSGTYPE::MSGT_CONN:
 		{
 			uint8_t ip_len = 0;
-			memcpy(&ip_len, data, IP_LEN_SIZE);
-			auto ip = std::string(data + IP_LEN_SIZE, ip_len);
+			memcpy(&ip_len, msg.data(), IP_LEN_SIZE);
+			auto ip = std::string(msg.data() + IP_LEN_SIZE, ip_len);
 			PORT port = 0;
-			memcpy(&port, data + IP_LEN_SIZE + IP_SIZE, PORT_SIZE);
+			memcpy(&port, msg.data() + IP_LEN_SIZE + IP_SIZE, PORT_SIZE);
 			_on_conn(net_id, std::move(ip), port);
 		}
 		break;
 		case MSGTYPE::MSGT_RECV:
 		{
-			_on_recv(net_id, data, size);
+			_on_recv(net_id, std::move(msg));
 		}
 		break;
 		case MSGTYPE::MSGT_DISC:
@@ -211,7 +211,7 @@ void Server::Listen(PORT port)
 	asio::co_spawn(_io_context, _Listen(port), asio::detached);
 }
 
-void Server::Connect(const IP & ip, PORT port, OnConnFunc callback)
+void Server::Connect(IP ip, PORT port, OnConnFunc callback)
 {
 	try
 	{
@@ -230,15 +230,15 @@ void Server::Disconnect(PEERID pid)
 	});
 }
 
-bool Server::Send(PEERID pid, const char * data, uint16_t size)
+bool Server::Send(PEERID pid, std::string msg)
 {
-	if(size > MESSAGE_BODY_SIZE)
+	if(msg.size() > MESSAGE_BODY_SIZE)
 	{
-		LOGGER_ERROR("Send size too large size:{} max_size:{}", size, MESSAGE_BODY_SIZE);
+		LOGGER_ERROR("Send size too large size:{} max_size:{}", msg.size(), MESSAGE_BODY_SIZE);
 		return false;
 	}
 
-	asio::co_spawn(_io_context, _Send(pid, data, size), asio::detached);
+	asio::co_spawn(_io_context, _Send(pid, std::move(msg)), asio::detached);
 
 	return true;
 }
@@ -260,15 +260,15 @@ asio::awaitable<void> Server::_Listen(PORT port)
 	}
 }
 
-bool Server::_Recv(PEERID & pid, const MSGTYPE & msg_type, const char * data, const uint16_t & size)
+bool Server::_Recv(PEERID & pid, const MSGTYPE & msg_type, std::string && msg)
 {
 	NETID nid;
 	nid.tid = _tid;
 	nid.pid = pid;
-	return _server_unit->_Recv(nid, msg_type, data, size);
+	return _server_unit->_Recv(nid, msg_type, std::move(msg));
 }
 
-asio::awaitable<void> Server::_Send(PEERID pid, const char * data, uint16_t size)
+asio::awaitable<void> Server::_Send(PEERID pid, std::string && msg)
 {
 	try
 	{
@@ -276,7 +276,7 @@ asio::awaitable<void> Server::_Send(PEERID pid, const char * data, uint16_t size
 		{
 			co_return;
 		}
-		co_await _peers[pid]->Send(data, size);
+		co_await _peers[pid]->Send(std::move(msg));
 	}
 	catch(const std::system_error & e)
 	{
@@ -284,7 +284,7 @@ asio::awaitable<void> Server::_Send(PEERID pid, const char * data, uint16_t size
 	}
 }
 
-asio::awaitable<void> Server::_Connect(const IP ip, PORT port, OnConnFunc callback)
+asio::awaitable<void> Server::_Connect(IP ip, PORT port, OnConnFunc callback)
 {
 	try
 	{
@@ -296,7 +296,7 @@ asio::awaitable<void> Server::_Connect(const IP ip, PORT port, OnConnFunc callba
 		NETID nid;
 		nid.tid = _tid;
 		nid.pid = pid;
-		callback(nid, std::move(ip), port);
+		callback(nid, ip, port);
 	}
 	catch(const std::system_error & e)
 	{
@@ -324,10 +324,10 @@ PEERID Server::_AddPeer(asio::ip::tcp::socket && socket)
 	auto port = peer->Port();
 
 	memcpy(_conn_buffer, &ip_len, IP_LEN_SIZE);
-	memcpy(_conn_buffer + IP_LEN_SIZE, ip.c_str(), IP_SIZE);
+	memcpy(_conn_buffer + IP_LEN_SIZE, ip.data(), IP_SIZE);
 	memcpy(_conn_buffer + IP_LEN_SIZE + IP_SIZE, &port, PORT_SIZE);
 
-	_Recv(pid, MSGTYPE::MSGT_CONN, _conn_buffer, CONN_BUFFER_SIZE);
+	_Recv(pid, MSGTYPE::MSGT_CONN, std::move(std::string(_conn_buffer, CONN_BUFFER_SIZE)));
 
 	return pid;
 }
@@ -338,7 +338,7 @@ void Server::_DelPeer(PEERID pid)
 	_peer_pool.Put(std::move(_peers[pid]));
 	_peers.Erase(pid);
 
-	_Recv(pid, MSGTYPE::MSGT_DISC, "", 0);
+	_Recv(pid, MSGTYPE::MSGT_DISC, std::move(std::string("")));
 }
 
 // Peer
@@ -382,15 +382,15 @@ void Peer::Release()
 	_server = nullptr;
 }
 
-asio::awaitable<void> Peer::Send(const char * data, uint16_t size)
+asio::awaitable<void> Peer::Send(std::string && msg)
 {
 	++_sending;
 	try
 	{
-		auto nsize = htons(size);
+		auto nsize = htons(msg.size());
 		memcpy(_send_buffer, &nsize, MESSAGE_HEAD_SIZE);
-		memcpy(_send_buffer + MESSAGE_HEAD_SIZE, data, size);
-		co_await asio::async_write(*_socket, asio::buffer(_send_buffer, MESSAGE_HEAD_SIZE + size), asio::use_awaitable);
+		memcpy(_send_buffer + MESSAGE_HEAD_SIZE, msg.data(), msg.size());
+		co_await asio::async_write(*_socket, asio::buffer(_send_buffer, MESSAGE_HEAD_SIZE + msg.size()), asio::use_awaitable);
 	}
 	catch (const std::system_error & e)
 	{
@@ -428,7 +428,8 @@ asio::awaitable<void> Peer::_Recv()
 			body_size = ntohs(body_size);
 			co_await asio::async_read(*_socket, asio::buffer(_recv_buffer, body_size), asio::use_awaitable);
 
-			_server->_Recv(_pid, MSGTYPE::MSGT_RECV, _recv_buffer, body_size);
+			std::string msg(_recv_buffer, body_size);
+			_server->_Recv(_pid, MSGTYPE::MSGT_RECV, std::move(msg));
 		}
 	}
 	catch (const std::system_error & e)

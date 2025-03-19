@@ -27,7 +27,7 @@ static constexpr uint8_t PORT_SIZE = sizeof(PORT);
 static constexpr uint8_t CONN_BUFFER_SIZE = IP_LEN_SIZE + IP_SIZE + PORT_SIZE;
 
 using OnConnFunc = std::function<void(NETID, IP, PORT)>;
-using OnRecvFunc = std::function<void(NETID, const char *, uint16_t)>;
+using OnRecvFunc = std::function<void(NETID, std::string&&)>;
 using OnDiscFunc = std::function<void(NETID)>;
 
 class Server;
@@ -49,14 +49,14 @@ public:
 	void Listen(PORT port);
 	void Connect(const IP & ip, PORT port, OnConnFunc callback);
 	void Disconnect(NETID net_id);
-	bool Send(NETID net_id, const char * data, uint16_t size);
+	bool Send(NETID net_id, std::string && msg);
 	void OnConn(OnConnFunc func);
 	void OnRecv(OnRecvFunc func);
 	void OnDisc(OnDiscFunc func);
 	size_t PeersNum();
 
 private:
-	bool _Recv(NETID & net_id, const MSGTYPE & msg_type, const char * data, const uint16_t & size);
+	bool _Recv(NETID & net_id, const MSGTYPE & msg_type, std::string && msg);
 
 private:
 	friend class Server;
@@ -85,16 +85,16 @@ public:
 
 	// 可以被主线程调用
 	void Listen(PORT port);
-	void Connect(const IP & ip, PORT port, OnConnFunc callback);
+	void Connect(IP ip, PORT port, OnConnFunc callback);
 	void Disconnect(PEERID pid);
-	bool Send(PEERID pid, const char * data, uint16_t size);
+	bool Send(PEERID pid, std::string msg);
 
 private:
 	// 在io_context中跑
 	asio::awaitable<void> _Listen(PORT port);
-	bool _Recv(PEERID & pid, const MSGTYPE & msg_type, const char * data, const uint16_t & size);
-	asio::awaitable<void> _Send(PEERID pid, const char * data, uint16_t size);
-	asio::awaitable<void> _Connect(const IP ip, PORT port, OnConnFunc callback);
+	bool _Recv(PEERID & pid, const MSGTYPE & msg_type, std::string && msg);
+	asio::awaitable<void> _Send(PEERID pid, std::string && msg);
+	asio::awaitable<void> _Connect(IP ip, PORT port, OnConnFunc callback);
 	void _Disconnect(PEERID pid);
 	PEERID _AddPeer(asio::ip::tcp::socket && socket);
 	void _DelPeer(PEERID pid);
@@ -124,7 +124,7 @@ public:
 	void Start(PEERID pid, asio::ip::tcp::socket && socket, const std::shared_ptr<Server> & server);
 	void Stop();
 	void Release();
-	asio::awaitable<void> Send(const char * data, uint16_t size);
+	asio::awaitable<void> Send(std::string && msg);
 	IP Ip();
 	PORT Port();
 

@@ -50,8 +50,8 @@ bool run_server(intvl_t interval)
 		lua->OnConn(net_id, ip, port);
 	});
 
-	server->OnRecv([&lua](NETID net_id, const char * data, uint16_t size) {
-		lua->OnRecv(net_id, data, size);
+	server->OnRecv([&lua](NETID net_id, std::string && msg) {
+		lua->OnRecv(net_id, msg);
 	});
 
 	server->OnDisc([&lua](NETID net_id) {

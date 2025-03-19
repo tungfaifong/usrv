@@ -8,6 +8,29 @@
 
 using namespace usrv;
 
+#include <random>
+
+std::string generate_random_string(size_t length = 12, 
+	const std::string& charset = "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
+							   "abcdefghijklmnopqrstuvwxyz"
+							   "0123456789") {
+	// 初始化随机数生成器
+	std::random_device rd;
+	std::mt19937 generator(rd());
+
+	// 创建均匀分布，范围是字符集的有效索引
+	std::uniform_int_distribution<size_t> distribution(0, charset.size() - 1);
+
+	std::string result;
+	result.reserve(length);
+
+	for (size_t i = 0; i < length; ++i) {
+	result += charset[distribution(generator)];
+	}
+
+	return result;
+}
+
 class Stat
 {
 public:
@@ -46,7 +69,7 @@ public:
 	~Client() = default;
 
 	virtual bool Start();
-	void OnRecv(NETID net_id, const char * data, uint16_t size);
+	void OnRecv(NETID net_id, std::string && msg);
 	void Send();
 
 	NETID _server_net_id = INVALID_NET_ID;
@@ -69,8 +92,9 @@ bool Client::Start()
 	return true;
 }
 
-void Client::OnRecv(NETID net_id, const char * data, uint16_t size)
+void Client::OnRecv(NETID net_id, std::string && msg)
 {
+	LOGGER_INFO("RECV msg {}", msg);
 	_recv_clock = SysNow();
 	intvl_t delay = (_recv_clock - _send_clock).count();
 	Stat::total_delay += delay;
@@ -95,8 +119,9 @@ void Client::OnRecv(NETID net_id, const char * data, uint16_t size)
 
 void Client::Send()
 {
-	const char * buff = "123";
-	server::Send(_server_net_id, buff, strlen(buff));
+	std::string msg = generate_random_string(rand() % 100);
+	LOGGER_INFO("SEND msg {}", msg);
+	server::Send(_server_net_id, std::move(msg));
 	_send_clock = SysNow();
 }
 
@@ -151,11 +176,11 @@ bool run_client(uint32_t client_num, uint32_t req_num)
 	server->OnConn([](NETID net_id, IP ip, PORT port){
 		LOGGER_INFO("conn: net_id:{} ip:{} port:{}", net_id.pid, ip, port);
 	});
-	server->OnRecv([](NETID net_id, const char * data, uint16_t size) {
+	server->OnRecv([](NETID net_id, std::string && msg) {
 		auto client = g_Clients.find(net_id);
 		if(client != g_Clients.end())
 		{
-			client->second->OnRecv(net_id, data, size);
+			client->second->OnRecv(net_id, std::move(msg));
 		}
 	});
 	server->OnDisc([](NETID net_id){

@@ -27,9 +27,9 @@ inline void Disconnect(NETID net_id)
 	std::dynamic_pointer_cast<ServerUnit>(UnitManager::Instance()->Get("SERVER"))->Disconnect(net_id);
 }
 
-inline bool Send(NETID net_id, const char * data, uint16_t size)
+inline bool Send(NETID net_id, std::string msg)
 {
-	return std::dynamic_pointer_cast<ServerUnit>(UnitManager::Instance()->Get("SERVER"))->Send(net_id, data, size);
+	return std::dynamic_pointer_cast<ServerUnit>(UnitManager::Instance()->Get("SERVER"))->Send(net_id, std::move(msg));
 }
 
 }
