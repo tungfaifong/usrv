@@ -32,14 +32,14 @@ bool ServerMgr::Start() {
 	return true;
 }
 
-bool run_server(intvl_t interval)
+bool run_server(intvl_t interval, size_t thread_num)
 {
 	signal(SIGUSR1, SignalHandler);
 
 	UnitManager::Instance()->Init(interval);
 
 	UnitManager::Instance()->Register("LOGGER", std::move(std::make_shared<LoggerUnit>(LoggerUnit::LEVEL::TRACE, "/logs/server.log", 1 Mi)));
-	UnitManager::Instance()->Register("SERVER", std::move(std::make_shared<ServerUnit>(0, 1 Ki, 1 Ki, 1 Mi)));
+	UnitManager::Instance()->Register("SERVER", std::move(std::make_shared<ServerUnit>(thread_num, 1 Ki, 1 Ki, 1 Mi)));
 	UnitManager::Instance()->Register("TIMER", std::move(std::make_shared<TimerUnit>(1 Ki, 1 Ki)));
 	UnitManager::Instance()->Register("LUA", std::move(std::make_shared<LuaUnit>("/main.lua")));
 	UnitManager::Instance()->Register("ServerMgr", std::move(std::make_shared<ServerMgr>()));

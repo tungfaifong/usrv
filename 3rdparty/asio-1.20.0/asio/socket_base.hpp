@@ -396,6 +396,14 @@ public:
       reuse_address;
 #endif
 
+#if defined(GENERATING_DOCUMENTATION)
+  typedef implementation_defined reuse_port;
+#else
+  typedef asio::detail::socket_option::boolean<
+    ASIO_OS_DEF(SOL_SOCKET), ASIO_OS_DEF(SO_REUSEPORT)>
+      reuse_port;
+#endif
+
   /// Socket option to specify whether the socket lingers on close if unsent
   /// data is present.
   /**

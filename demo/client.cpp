@@ -94,7 +94,7 @@ bool Client::Start()
 
 void Client::OnRecv(NETID net_id, std::string && msg)
 {
-	LOGGER_INFO("RECV msg {}", msg);
+	// LOGGER_INFO("RECV msg {}", msg);
 	_recv_clock = SysNow();
 	intvl_t delay = (_recv_clock - _send_clock).count();
 	Stat::total_delay += delay;
@@ -119,8 +119,8 @@ void Client::OnRecv(NETID net_id, std::string && msg)
 
 void Client::Send()
 {
-	std::string msg = generate_random_string(rand() % 100);
-	LOGGER_INFO("SEND msg {}", msg);
+	std::string msg = "123"; //generate_random_string(rand() % 100);
+	// LOGGER_INFO("SEND msg {}", msg);
 	server::Send(_server_net_id, std::move(msg));
 	_send_clock = SysNow();
 }
@@ -151,7 +151,7 @@ bool Mgr::Update(intvl_t interval)
 	return true;
 }
 
-bool run_client(uint32_t client_num, uint32_t req_num)
+bool run_client(uint32_t client_num, uint32_t req_num, size_t thread_num)
 {
 	Stat::client_num = client_num;
 	Stat::req_num = req_num;
@@ -159,7 +159,7 @@ bool run_client(uint32_t client_num, uint32_t req_num)
 	UnitManager::Instance()->Init(10);
 	UnitManager::Instance()->Register("LOGGER", std::move(std::make_shared<LoggerUnit>(LoggerUnit::LEVEL::TRACE, "/logs/client.log", 1 Mi)));
 	UnitManager::Instance()->Register("TIMER", std::move(std::make_shared<TimerUnit>(1 Ki, 1 Ki)));
-	UnitManager::Instance()->Register("SERVER", std::move(std::make_shared<ServerUnit>(0, 1 Ki, 1 Ki, 4 Mi)));
+	UnitManager::Instance()->Register("SERVER", std::move(std::make_shared<ServerUnit>(thread_num, 1 Ki, 1 Ki, 4 Mi)));
 
 	for(uint32_t i = 0; i < client_num; ++i)
 	{

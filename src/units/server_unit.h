@@ -76,7 +76,7 @@ private:
 	OnRecvFunc _on_recv;
 	OnDiscFunc _on_disc;
 
-	bool _sending = false;
+	size_t _connect_idx = 0;
 };
 
 class Server : public std::enable_shared_from_this<Server>
@@ -89,7 +89,7 @@ public:
 	void Listen(PORT port);
 	void Connect(IP ip, PORT port, OnConnFunc callback);
 	void Disconnect(PEERID pid);
-	bool Send(PEERID pid, std::string msg);
+	bool Send(PEERID pid, std::string && msg);
 
 private:
 	// 在io_context中跑

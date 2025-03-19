@@ -13,7 +13,8 @@ ServerUnit::ServerUnit(size_t thread_num, size_t pp_alloc_num, size_t ps_alloc_n
 	_thread_num(thread_num),
 	_pp_alloc_num(pp_alloc_num),
 	_ps_alloc_num(ps_alloc_num),
-	_spsc_blk_num(spsc_blk_num)
+	_spsc_blk_num(spsc_blk_num),
+	_connect_idx(0)
 {
 }
 
@@ -27,12 +28,12 @@ bool ServerUnit::Init()
 	{
 		for(size_t i = 0; i < _thread_num; ++i)
 		{
-			_io_contexts.emplace_back(new asio::io_context());
+			_io_contexts.emplace_back(std::move(std::make_shared<asio::io_context>()));
 			_work_guards.emplace_back(asio::make_work_guard(*_io_contexts[i]));
 			_servers.emplace_back(std::move(std::make_shared<Server>(*_io_contexts[i], i, _pp_alloc_num, _ps_alloc_num, _spsc_blk_num, shared_from_this())));
-			_io_threads.emplace_back(new std::thread([this, &i](){
-				_io_contexts[i]->run();
-			}));
+			_io_threads.emplace_back(std::move(std::make_shared<std::thread>([self = shared_from_this(), i](){
+				self->_io_contexts[i]->run();
+			})));
 		}
 	}
 
@@ -131,7 +132,8 @@ void ServerUnit::Listen(PORT port)
 
 void ServerUnit::Connect(const IP & ip, PORT port, OnConnFunc callback)
 {
-	_servers[0]->Connect(ip, port, callback);
+	_servers[_connect_idx]->Connect(ip, port, callback);
+	_connect_idx = (_connect_idx + 1) % _servers.size();
 }
 
 void ServerUnit::Disconnect(NETID net_id)
@@ -148,7 +150,7 @@ void ServerUnit::Recv(NETID net_id, MSGTYPE msg_type, std::string && msg)
 
 bool ServerUnit::Send(NETID net_id, std::string && msg)
 {
-	return _servers[net_id.tid]->Send(net_id.pid, msg);
+	return _servers[net_id.tid]->Send(net_id.pid, std::move(msg));
 }
 
 void ServerUnit::OnConn(OnConnFunc func)
@@ -231,12 +233,12 @@ void Server::Connect(IP ip, PORT port, OnConnFunc callback)
 
 void Server::Disconnect(PEERID pid)
 {
-	asio::post(_io_context, [self = shared_from_this(), &pid](){
+	asio::dispatch(_io_context, [self = shared_from_this(), &pid](){
 		self->_Disconnect(pid);
 	});
 }
 
-bool Server::Send(PEERID pid, std::string msg)
+bool Server::Send(PEERID pid, std::string && msg)
 {
 	if(msg.size() > MESSAGE_BODY_SIZE)
 	{
@@ -244,7 +246,9 @@ bool Server::Send(PEERID pid, std::string msg)
 		return false;
 	}
 
-	asio::co_spawn(_io_context, _Send(pid, std::move(msg)), asio::detached);
+	asio::dispatch(_io_context, [self = shared_from_this(), pid, msg = std::move(msg)]() mutable {
+		asio::co_spawn(self->_io_context, self->_Send(pid, std::move(msg)), asio::detached);
+	});
 
 	return true;
 }
@@ -253,7 +257,13 @@ asio::awaitable<void> Server::_Listen(PORT port)
 {
 	try
 	{
-		asio::ip::tcp::acceptor acceptor(_io_context, asio::ip::tcp::endpoint(asio::ip::tcp::v6(), port));
+		asio::ip::tcp::acceptor acceptor(_io_context);
+		asio::ip::tcp::endpoint endpoint(asio::ip::tcp::v6(), port);
+		acceptor.open(endpoint.protocol());
+		acceptor.set_option(asio::ip::tcp::acceptor::reuse_address(true));
+		acceptor.set_option(asio::ip::tcp::acceptor::reuse_port(true));
+		acceptor.bind(endpoint);
+		acceptor.listen();
 		while(true)
 		{
 			auto socket = co_await acceptor.async_accept(asio::use_awaitable);
@@ -299,10 +309,12 @@ asio::awaitable<void> Server::_Connect(IP ip, PORT port, OnConnFunc callback)
 		auto endpoint = resolver.resolve(ip, std::to_string(port));
 		co_await asio::async_connect(socket, endpoint, asio::use_awaitable);
 		auto pid = _AddPeer(std::move(socket));
-		NETID nid;
-		nid.tid = _tid;
-		nid.pid = pid;
-		callback(nid, ip, port);
+		asio::dispatch(_server_unit->_io_context, [self = shared_from_this(), pid, ip, port, callback](){
+			NETID nid;
+			nid.tid = self->_tid;
+			nid.pid = pid;
+			callback(nid, ip, port);
+		});
 	}
 	catch(const std::system_error & e)
 	{
