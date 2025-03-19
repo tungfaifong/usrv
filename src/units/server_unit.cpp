@@ -9,7 +9,8 @@
 NAMESPACE_OPEN
 
 // ServerUnit
-ServerUnit::ServerUnit(size_t thread_num, size_t pp_alloc_num, size_t ps_alloc_num, size_t spsc_blk_num): _thread_num(thread_num),
+ServerUnit::ServerUnit(size_t thread_num, size_t pp_alloc_num, size_t ps_alloc_num, size_t spsc_blk_num): _io_context(UnitManager::Instance()->IOContext()),
+	_thread_num(thread_num),
 	_pp_alloc_num(pp_alloc_num),
 	_ps_alloc_num(ps_alloc_num),
 	_spsc_blk_num(spsc_blk_num)
@@ -20,7 +21,7 @@ bool ServerUnit::Init()
 {
 	if(_thread_num == 0)
 	{
-		_servers.push_back(std::move(std::make_shared<Server>(UnitManager::Instance()->IOContext(), 0, _pp_alloc_num, _ps_alloc_num, _spsc_blk_num, shared_from_this())));
+		_servers.push_back(std::move(std::make_shared<Server>(_io_context, 0, _pp_alloc_num, _ps_alloc_num, _spsc_blk_num, shared_from_this())));
 	}
 	else
 	{
@@ -138,6 +139,13 @@ void ServerUnit::Disconnect(NETID net_id)
 	_servers[net_id.tid]->Disconnect(net_id.pid);
 }
 
+void ServerUnit::Recv(NETID net_id, MSGTYPE msg_type, std::string && msg)
+{
+	asio::dispatch(_io_context, [self = shared_from_this(), net_id, msg_type, msg = std::move(msg)]() mutable {
+		self->_Recv(net_id, msg_type, std::move(msg));
+	});
+}
+
 bool ServerUnit::Send(NETID net_id, std::string && msg)
 {
 	return _servers[net_id.tid]->Send(net_id.pid, msg);
@@ -169,7 +177,7 @@ size_t ServerUnit::PeersNum()
 	return 0;
 }
 
-bool ServerUnit::_Recv(NETID & net_id, const MSGTYPE & msg_type, std::string && msg)
+void ServerUnit::_Recv(NETID net_id, MSGTYPE msg_type, std::string && msg)
 {
 	switch(msg_type)
 	{
@@ -194,8 +202,6 @@ bool ServerUnit::_Recv(NETID & net_id, const MSGTYPE & msg_type, std::string && 
 		}
 		break;
 	}
-
-	return true;
 }
 
 // Server
@@ -260,12 +266,12 @@ asio::awaitable<void> Server::_Listen(PORT port)
 	}
 }
 
-bool Server::_Recv(PEERID & pid, const MSGTYPE & msg_type, std::string && msg)
+void Server::_Recv(PEERID & pid, const MSGTYPE & msg_type, std::string && msg)
 {
 	NETID nid;
 	nid.tid = _tid;
 	nid.pid = pid;
-	return _server_unit->_Recv(nid, msg_type, std::move(msg));
+	_server_unit->Recv(nid, msg_type, std::move(msg));
 }
 
 asio::awaitable<void> Server::_Send(PEERID pid, std::string && msg)

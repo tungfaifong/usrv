@@ -49,6 +49,7 @@ public:
 	void Listen(PORT port);
 	void Connect(const IP & ip, PORT port, OnConnFunc callback);
 	void Disconnect(NETID net_id);
+	void Recv(NETID net_id, MSGTYPE msg_type, std::string && msg);
 	bool Send(NETID net_id, std::string && msg);
 	void OnConn(OnConnFunc func);
 	void OnRecv(OnRecvFunc func);
@@ -56,11 +57,12 @@ public:
 	size_t PeersNum();
 
 private:
-	bool _Recv(NETID & net_id, const MSGTYPE & msg_type, std::string && msg);
+	void _Recv(NETID net_id, MSGTYPE msg_type, std::string && msg);
 
 private:
 	friend class Server;
 
+	asio::io_context & _io_context;
 	size_t _thread_num;
 	size_t _pp_alloc_num;
 	size_t _ps_alloc_num;
@@ -92,7 +94,7 @@ public:
 private:
 	// 在io_context中跑
 	asio::awaitable<void> _Listen(PORT port);
-	bool _Recv(PEERID & pid, const MSGTYPE & msg_type, std::string && msg);
+	void _Recv(PEERID & pid, const MSGTYPE & msg_type, std::string && msg);
 	asio::awaitable<void> _Send(PEERID pid, std::string && msg);
 	asio::awaitable<void> _Connect(IP ip, PORT port, OnConnFunc callback);
 	void _Disconnect(PEERID pid);
