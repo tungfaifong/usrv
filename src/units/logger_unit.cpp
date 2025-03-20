@@ -26,11 +26,6 @@ void LoggerUnit::OnRegister(const std::shared_ptr<UnitManager> & mgr)
 	_Init();
 }
 
-bool LoggerUnit::Start()
-{
-	return true;
-}
-
 void LoggerUnit::Stop()
 {
 	_io_context.stop();

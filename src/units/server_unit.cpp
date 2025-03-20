@@ -63,45 +63,6 @@ bool ServerUnit::Start()
 	return true;
 }
 
-bool ServerUnit::Update(intvl_t interval)
-{
-	// auto busy = false;
-	// NETID net_id;
-	// MSGTYPE msg_type;
-	// uint16_t size;
-	// auto cnt = 0;
-	// while(_Recv(net_id, msg_type, _recv_buffer, size))
-	// {
-	// 	switch(msg_type)
-	// 	{
-	// 		case MSGTYPE::MSGT_CONN:
-	// 		{
-	// 			uint8_t ip_len = 0;
-	// 			memcpy(&ip_len, _recv_buffer, IP_LEN_SIZE);
-	// 			auto ip = std::string(_recv_buffer + IP_LEN_SIZE, ip_len);
-	// 			PORT port = 0;
-	// 			memcpy(&port, _recv_buffer + IP_LEN_SIZE + IP_SIZE, PORT_SIZE);
-	// 			_on_conn(net_id, std::move(ip), port);
-	// 		}
-	// 		break;
-	// 		case MSGTYPE::MSGT_RECV:
-	// 		{
-	// 			_on_recv(net_id, _recv_buffer, size);
-	// 		}
-	// 		break;
-	// 		case MSGTYPE::MSGT_DISC:
-	// 		{
-	// 			_on_disc(net_id);
-	// 		}
-	// 		break;
-	// 	}
-	// 	busy = true;
-	// 	if(++cnt >= OPF) break;
-	// }
-	// return busy;
-	return true;
-}
-
 void ServerUnit::Stop()
 {
 	for(size_t i = 0; i < _io_threads.size(); ++i)
@@ -143,10 +104,31 @@ void ServerUnit::Disconnect(NETID net_id)
 
 void ServerUnit::Recv(NETID net_id, MSGTYPE msg_type, std::string && msg)
 {
-	// 判断线程 进行分发
-	asio::dispatch(_io_context, [self = shared_from_this(), net_id, msg_type, msg = std::move(msg)]() mutable {
-		self->_Recv(net_id, msg_type, std::move(msg));
-	});
+	switch(msg_type)
+	{
+		case MSGTYPE::MSGT_CONN:
+		{
+			uint8_t ip_len = 0;
+			memcpy(&ip_len, msg.data(), IP_LEN_SIZE);
+			auto ip = std::string(msg.data() + IP_LEN_SIZE, ip_len);
+			PORT port = 0;
+			memcpy(&port, msg.data() + IP_LEN_SIZE + IP_SIZE, PORT_SIZE);
+			_on_conn(net_id, std::move(ip), port);
+		}
+		break;
+		case MSGTYPE::MSGT_RECV:
+		{
+			_on_recv(net_id, std::move(msg));
+		}
+		break;
+		case MSGTYPE::MSGT_DISC:
+		{
+			_on_disc(net_id);
+		}
+		break;
+		default:
+		break;
+	}
 }
 
 bool ServerUnit::Send(NETID net_id, std::string && msg)
@@ -180,39 +162,27 @@ size_t ServerUnit::PeersNum()
 	return 0;
 }
 
-void ServerUnit::_Recv(NETID net_id, MSGTYPE msg_type, std::string && msg)
-{
-	switch(msg_type)
-	{
-		case MSGTYPE::MSGT_CONN:
-		{
-			uint8_t ip_len = 0;
-			memcpy(&ip_len, msg.data(), IP_LEN_SIZE);
-			auto ip = std::string(msg.data() + IP_LEN_SIZE, ip_len);
-			PORT port = 0;
-			memcpy(&port, msg.data() + IP_LEN_SIZE + IP_SIZE, PORT_SIZE);
-			_on_conn(net_id, std::move(ip), port);
-		}
-		break;
-		case MSGTYPE::MSGT_RECV:
-		{
-			_on_recv(net_id, std::move(msg));
-		}
-		break;
-		case MSGTYPE::MSGT_DISC:
-		{
-			_on_disc(net_id);
-		}
-		break;
-	}
-}
-
 // Server
 Server::Server(asio::io_context & io_context, size_t tid, size_t pp_alloc_num, size_t ps_alloc_num, size_t spsc_size, const std::shared_ptr<ServerUnit> & unit): _io_context(io_context),
 	_tid(tid),
 	_peer_pool(pp_alloc_num), _peers(ps_alloc_num),
 	_server_unit(unit)
 {
+	if(&_io_context != &_server_unit->_io_context)
+	{
+		_recv_queue = std::make_shared<SpscQueue<ServerMsg>>(spsc_size);
+		_send_queue = std::make_shared<SpscQueue<ServerMsg>>(spsc_size);
+		_recv_timer = std::make_shared<asio::steady_timer>(_io_context);
+		_send_timer = std::make_shared<asio::steady_timer>(_server_unit->_io_context);
+		_recv_loop = std::make_shared<Loop>(_server_unit->_io_context);
+		_recv_loop->Init(UnitManager::Instance()->Interval(), [this](){
+			return _UpdateRecv();
+		});
+		_send_loop = std::make_shared<Loop>(_io_context);
+		_send_loop->Init(UnitManager::Instance()->Interval(), [this](){
+			return _UpdateSend();
+		});
+	}
 }
 
 void Server::Listen(PORT port)
@@ -239,6 +209,18 @@ void Server::Disconnect(PEERID pid)
 	});
 }
 
+void Server::Recv(PEERID & pid, const MSGTYPE & msg_type, std::string && msg)
+{
+	if(&_io_context == &_server_unit->_io_context)
+	{
+		_Recv(pid, msg_type, std::move(msg));
+	}
+	else
+	{
+		asio::co_spawn(_io_context, _QueueRecv(pid, msg_type, std::move(msg)), asio::detached);
+	}
+}
+
 bool Server::Send(PEERID pid, std::string && msg)
 {
 	if(msg.size() > MESSAGE_BODY_SIZE)
@@ -247,8 +229,14 @@ bool Server::Send(PEERID pid, std::string && msg)
 		return false;
 	}
 
-	// 区分线程 进行 分发
-	asio::co_spawn(_io_context, _Send(pid, std::move(msg)), asio::detached);
+	if(&_io_context == &_server_unit->_io_context)
+	{
+		asio::co_spawn(_io_context, _Send(pid, std::move(msg)), asio::detached);
+	}
+	else
+	{
+		asio::co_spawn(_server_unit->_io_context, _QueueSend(pid, std::move(msg)), asio::detached);
+	}
 
 	return true;
 }
@@ -284,6 +272,28 @@ void Server::_Recv(PEERID & pid, const MSGTYPE & msg_type, std::string && msg)
 	_server_unit->Recv(nid, msg_type, std::move(msg));
 }
 
+asio::awaitable<void> Server::_QueueRecv(PEERID pid, MSGTYPE msg_type, std::string msg)
+{
+	while(!_recv_queue->Push(pid, msg_type, std::move(msg)))
+	{
+		_recv_timer->expires_after(ns_t(NSINTERVAL));
+		asio::error_code ec;
+		co_await _recv_timer->async_wait(redirect_error(asio::use_awaitable, ec));
+	}
+}
+
+bool Server::_UpdateRecv()
+{
+	auto busy = false;
+	ServerMsg msg;
+	while(_recv_queue->Pop(msg))
+	{
+		_Recv(msg.pid, msg.msg_type, std::move(msg.msg));
+		busy = true;
+	}
+	return busy;
+}
+
 asio::awaitable<void> Server::_Send(PEERID pid, std::string msg)
 {
 	try
@@ -298,6 +308,28 @@ asio::awaitable<void> Server::_Send(PEERID pid, std::string msg)
 	{
 		LOGGER_ERROR("ServerUnit::_Send error:{}", e.what());
 	}
+}
+
+asio::awaitable<void> Server::_QueueSend(PEERID pid, std::string msg)
+{
+	while(!_send_queue->Push(pid, MSGTYPE::MSGT_SEND, std::move(msg)))
+	{
+		_send_timer->expires_after(ns_t(NSINTERVAL));
+		asio::error_code ec;
+		co_await _send_timer->async_wait(redirect_error(asio::use_awaitable, ec));
+	}
+}
+
+bool Server::_UpdateSend()
+{
+	auto busy = false;
+	ServerMsg msg;
+	while(_send_queue->Pop(msg))
+	{
+		asio::co_spawn(_io_context, _Send(msg.pid, std::move(msg.msg)), asio::detached);
+		busy = true;
+	}
+	return busy;
 }
 
 asio::awaitable<void> Server::_Connect(IP ip, PORT port, OnConnFunc callback)
@@ -345,7 +377,7 @@ PEERID Server::_AddPeer(asio::ip::tcp::socket && socket)
 	memcpy(_conn_buffer + IP_LEN_SIZE, ip.data(), IP_SIZE);
 	memcpy(_conn_buffer + IP_LEN_SIZE + IP_SIZE, &port, PORT_SIZE);
 
-	_Recv(pid, MSGTYPE::MSGT_CONN, std::move(std::string(_conn_buffer, CONN_BUFFER_SIZE)));
+	Recv(pid, MSGTYPE::MSGT_CONN, std::move(std::string(_conn_buffer, CONN_BUFFER_SIZE)));
 
 	return pid;
 }
@@ -356,7 +388,7 @@ void Server::_DelPeer(PEERID pid)
 	_peer_pool.Put(std::move(_peers[pid]));
 	_peers.Erase(pid);
 
-	_Recv(pid, MSGTYPE::MSGT_DISC, std::move(std::string("")));
+	Recv(pid, MSGTYPE::MSGT_DISC, std::move(std::string("")));
 }
 
 // Peer
@@ -447,7 +479,7 @@ asio::awaitable<void> Peer::_Recv()
 			co_await asio::async_read(*_socket, asio::buffer(_recv_buffer, body_size), asio::use_awaitable);
 
 			std::string msg(_recv_buffer, body_size);
-			_server->_Recv(_pid, MSGTYPE::MSGT_RECV, std::move(msg));
+			_server->Recv(_pid, MSGTYPE::MSGT_RECV, std::move(msg));
 		}
 	}
 	catch (const std::system_error & e)

@@ -21,6 +21,7 @@ static constexpr uint32_t DAY_SEC = 24 * HOUR_SEC;
 static constexpr uint32_t WEEK_SEC = 7 * DAY_SEC;
 static constexpr uint32_t SEC2MILLISEC = 1000;
 static constexpr uint32_t MS2NS = 1000000;
+static constexpr uint32_t NSINTERVAL = 1000;
 
 inline sys_clock_t SysNow()
 {

@@ -12,14 +12,6 @@
 
 using namespace usrv;
 
-void SignalHandler(int signum)
-{
-	if(signum == SIGUSR1)
-	{
-		UnitManager::Instance()->SetExit(true);
-	}
-}
-
 class ServerMgr : public Unit, public std::enable_shared_from_this<ServerMgr>
 {
 public:
@@ -34,7 +26,7 @@ bool ServerMgr::Start() {
 
 bool run_server(intvl_t interval, size_t thread_num)
 {
-	signal(SIGUSR1, SignalHandler);
+	SignalInit();
 
 	UnitManager::Instance()->Init(interval);
 

@@ -58,6 +58,9 @@ static constexpr uint16_t MESSAGE_BODY_SIZE = 65536 - MESSAGE_HEAD_SIZE; //asio:
 
 extern std::string PATH_ROOT; // getcwd(NULL, 1024)
 
+void SignalHandler(int signo);
+void SignalInit();
+
 NAMESPACE_CLOSE
 
 #endif // USRV_COMMON_H

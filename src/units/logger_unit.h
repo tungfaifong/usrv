@@ -37,7 +37,6 @@ public:
 	virtual ~LoggerUnit();
 
 	virtual void OnRegister(const std::shared_ptr<UnitManager> & mgr) override final;
-	virtual bool Start() override final;
 	virtual void Stop() override final;
 	virtual void Release() override final;
 

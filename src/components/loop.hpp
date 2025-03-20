@@ -54,7 +54,7 @@ private:
 			{
 				if(busy)
 				{
-					_interval = 1;
+					_interval = NSINTERVAL;
 				}
 				else
 				{
@@ -71,7 +71,7 @@ private:
 
 private:
 	asio::io_context & _io_context;
-	intvl_t _interval;
+	intvl_t _interval = NSINTERVAL;
 	intvl_t _max_interval;
 	UpdateFunc _update;
 	bool _fixed;

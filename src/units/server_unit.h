@@ -7,6 +7,7 @@
 
 #include "asio.hpp"
 
+#include "components/loop.hpp"
 #include "util/object_map.hpp"
 #include "util/object_pool.hpp"
 #include "util/spsc_queue.hpp"
@@ -19,6 +20,7 @@ enum class MSGTYPE
 	MSGT_CONN = 0,
 	MSGT_RECV,
 	MSGT_DISC,
+	MSGT_SEND,
 };
 
 static constexpr uint8_t IP_LEN_SIZE = sizeof(uint8_t);
@@ -41,7 +43,6 @@ public:
 
 	virtual bool Init() override final;
 	virtual bool Start() override final;
-	virtual bool Update(intvl_t interval) override final;
 	virtual void Stop() override final;
 	virtual void Release() override final;
 
@@ -55,9 +56,6 @@ public:
 	void OnRecv(OnRecvFunc func);
 	void OnDisc(OnDiscFunc func);
 	size_t PeersNum();
-
-private:
-	void _Recv(NETID net_id, MSGTYPE msg_type, std::string && msg);
 
 private:
 	friend class Server;
@@ -79,6 +77,20 @@ private:
 	size_t _connect_idx = 0;
 };
 
+class ServerMsg
+{
+public:
+	ServerMsg() = default;
+	ServerMsg(PEERID pid, MSGTYPE msg_type, std::string && msg): pid(pid), msg_type(msg_type), msg(std::move(msg)) {}
+
+	ServerMsg(ServerMsg&&) = default;
+	ServerMsg& operator=(ServerMsg&&) = default;
+
+	PEERID pid;
+	MSGTYPE msg_type;
+	std::string msg;
+};
+
 class Server : public std::enable_shared_from_this<Server>
 {
 public:
@@ -89,13 +101,18 @@ public:
 	void Listen(PORT port);
 	void Connect(IP ip, PORT port, OnConnFunc callback);
 	void Disconnect(PEERID pid);
+	void Recv(PEERID & pid, const MSGTYPE & msg_type, std::string && msg);
 	bool Send(PEERID pid, std::string && msg);
 
 private:
 	// 在io_context中跑
 	asio::awaitable<void> _Listen(PORT port);
 	void _Recv(PEERID & pid, const MSGTYPE & msg_type, std::string && msg);
+	asio::awaitable<void> _QueueRecv(PEERID pid, MSGTYPE msg_type, std::string msg);
+	bool _UpdateRecv();
 	asio::awaitable<void> _Send(PEERID pid, std::string msg);
+	asio::awaitable<void> _QueueSend(PEERID pid, std::string msg);
+	bool _UpdateSend();
 	asio::awaitable<void> _Connect(IP ip, PORT port, OnConnFunc callback);
 	void _Disconnect(PEERID pid);
 	PEERID _AddPeer(asio::ip::tcp::socket && socket);
@@ -108,11 +125,16 @@ private:
 	size_t _tid = -1;
 	ObjectPool<Peer> _peer_pool;
 	ObjectMap<Peer> _peers;
-
 	std::shared_ptr<ServerUnit> _server_unit;
 
 	char _conn_buffer[CONN_BUFFER_SIZE];
-	// char _recv_buffer[MESSAGE_BODY_SIZE];
+
+	std::shared_ptr<SpscQueue<ServerMsg>> _recv_queue;
+	std::shared_ptr<SpscQueue<ServerMsg>> _send_queue;
+	std::shared_ptr<asio::steady_timer> _recv_timer;
+	std::shared_ptr<asio::steady_timer> _send_timer;
+	std::shared_ptr<Loop> _recv_loop;
+	std::shared_ptr<Loop> _send_loop;
 };
 
 // 在server的io_context运行

@@ -153,6 +153,8 @@ bool Mgr::Update(intvl_t interval)
 
 bool run_client(uint32_t client_num, uint32_t req_num, size_t thread_num)
 {
+	SignalInit();
+
 	Stat::client_num = client_num;
 	Stat::req_num = req_num;
 
