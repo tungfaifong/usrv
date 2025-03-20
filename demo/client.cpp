@@ -148,7 +148,7 @@ bool Mgr::Update(intvl_t interval)
 		start = true;
 	}
 	
-	return true;
+	return false;
 }
 
 bool run_client(uint32_t client_num, uint32_t req_num, size_t thread_num)

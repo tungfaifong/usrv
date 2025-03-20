@@ -31,7 +31,7 @@ bool run_server(intvl_t interval, size_t thread_num)
 	UnitManager::Instance()->Init(interval);
 
 	UnitManager::Instance()->Register("LOGGER", std::move(std::make_shared<LoggerUnit>(LoggerUnit::LEVEL::TRACE, "/logs/server.log", 1 Ki)));
-	UnitManager::Instance()->Register("SERVER", std::move(std::make_shared<ServerUnit>(thread_num, 1 Ki, 1 Ki, 1 Ki)));
+	UnitManager::Instance()->Register("SERVER", std::move(std::make_shared<ServerUnit>(thread_num, 1 Ki, 1 Ki, 4 Ki)));
 	UnitManager::Instance()->Register("TIMER", std::move(std::make_shared<TimerUnit>(1 Ki, 1 Ki)));
 	UnitManager::Instance()->Register("LUA", std::move(std::make_shared<LuaUnit>("/main.lua")));
 	UnitManager::Instance()->Register("ServerMgr", std::move(std::make_shared<ServerMgr>()));
