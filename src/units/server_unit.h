@@ -127,8 +127,6 @@ private:
 	ObjectMap<Peer> _peers;
 	std::shared_ptr<ServerUnit> _server_unit;
 
-	char _conn_buffer[CONN_BUFFER_SIZE];
-
 	std::shared_ptr<SpscQueue<ServerMsg>> _recv_queue;
 	std::shared_ptr<SpscQueue<ServerMsg>> _send_queue;
 	std::shared_ptr<asio::steady_timer> _recv_timer;
@@ -160,8 +158,6 @@ private:
 	PEERID _pid = INVALID_PEER_ID;
 	std::shared_ptr<asio::ip::tcp::socket> _socket;
 	std::shared_ptr<Server> _server;
-	char _send_buffer[MESSAGE_HEAD_SIZE + MESSAGE_BODY_SIZE];
-	char _recv_buffer[MESSAGE_BODY_SIZE];
 	bool _wait_to_release;
 	uint32_t _sending;
 	bool _recving;

@@ -373,11 +373,13 @@ PEERID Server::_AddPeer(asio::ip::tcp::socket && socket)
 	auto ip_len = (uint8_t)ip.size();
 	auto port = peer->Port();
 
-	memcpy(_conn_buffer, &ip_len, IP_LEN_SIZE);
-	memcpy(_conn_buffer + IP_LEN_SIZE, ip.data(), IP_SIZE);
-	memcpy(_conn_buffer + IP_LEN_SIZE + IP_SIZE, &port, PORT_SIZE);
+	std::string msg;
+	msg.resize(CONN_BUFFER_SIZE);
+	memcpy(msg.data(), &ip_len, IP_LEN_SIZE);
+	memcpy(msg.data() + IP_LEN_SIZE, ip.data(), IP_SIZE);
+	memcpy(msg.data() + IP_LEN_SIZE + IP_SIZE, &port, PORT_SIZE);
 
-	Recv(pid, MSGTYPE::MSGT_CONN, std::move(std::string(_conn_buffer, CONN_BUFFER_SIZE)));
+	Recv(pid, MSGTYPE::MSGT_CONN, std::move(msg));
 
 	return pid;
 }
@@ -437,10 +439,12 @@ asio::awaitable<void> Peer::Send(std::string && msg)
 	++_sending;
 	try
 	{
-		auto nsize = htons(msg.size());
-		memcpy(_send_buffer, &nsize, MESSAGE_HEAD_SIZE);
-		memcpy(_send_buffer + MESSAGE_HEAD_SIZE, msg.data(), msg.size());
-		co_await asio::async_write(*_socket, asio::buffer(_send_buffer, MESSAGE_HEAD_SIZE + msg.size()), asio::use_awaitable);
+		auto osize = msg.size();
+		msg.resize(osize + MESSAGE_HEAD_SIZE);
+		memmove(msg.data() + MESSAGE_HEAD_SIZE, msg.data(), osize); 
+		auto nsize = htons(osize);
+		memcpy(msg.data(), &nsize, MESSAGE_HEAD_SIZE);
+		co_await asio::async_write(*_socket, asio::dynamic_buffer(msg, msg.size()), asio::use_awaitable);
 	}
 	catch (const std::system_error & e)
 	{
@@ -476,9 +480,8 @@ asio::awaitable<void> Peer::_Recv()
 			co_await asio::async_read(*_socket, asio::buffer(&body_size, MESSAGE_HEAD_SIZE), asio::use_awaitable);
 			if(!_socket->is_open()) break;
 			body_size = ntohs(body_size);
-			co_await asio::async_read(*_socket, asio::buffer(_recv_buffer, body_size), asio::use_awaitable);
-
-			std::string msg(_recv_buffer, body_size);
+			std::string msg;
+			co_await asio::async_read(*_socket, asio::dynamic_buffer(msg, body_size), asio::use_awaitable);
 			_server->Recv(_pid, MSGTYPE::MSGT_RECV, std::move(msg));
 		}
 	}
