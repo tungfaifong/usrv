@@ -78,17 +78,10 @@ bool LoggerUnit::_LogUpdate()
 	auto busy = false;
 	for(auto & q : _log_queues)
 	{
-		while(!q.second->Empty())
+		LogMsg log;
+		while(q.second->Pop(log))
 		{
-			LogMsg log;
-
-			if(!q.second->Pop(log))
-			{
-				continue;
-			}
-
 			_RealLog(log.level, std::move(log.msg));
-
 			busy = true;
 		}
 	}
