@@ -248,9 +248,7 @@ bool Server::Send(PEERID pid, std::string && msg)
 	}
 
 	// 区分线程 进行 分发
-	asio::dispatch(_io_context, [self = shared_from_this(), pid, msg = std::move(msg)]() mutable {
-		asio::co_spawn(self->_io_context, self->_Send(pid, std::move(msg)), asio::detached);
-	});
+	asio::co_spawn(_io_context, _Send(pid, std::move(msg)), asio::detached);
 
 	return true;
 }
@@ -286,7 +284,7 @@ void Server::_Recv(PEERID & pid, const MSGTYPE & msg_type, std::string && msg)
 	_server_unit->Recv(nid, msg_type, std::move(msg));
 }
 
-asio::awaitable<void> Server::_Send(PEERID pid, std::string && msg)
+asio::awaitable<void> Server::_Send(PEERID pid, std::string msg)
 {
 	try
 	{

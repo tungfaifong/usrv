@@ -29,7 +29,7 @@ end
 function OnRecv(net_id, data)
 	-- logger.log(1, 1, "OnRecv net_id:" .. net_id.pid .. " data:" .. data)
 	msg = data -- reverse_string(data)
-	server.Send(net_id, msg, string.len(msg))
+	server.Send(net_id, msg)
 end
 
 function OnDisc(net_id)

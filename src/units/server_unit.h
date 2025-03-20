@@ -95,7 +95,7 @@ private:
 	// 在io_context中跑
 	asio::awaitable<void> _Listen(PORT port);
 	void _Recv(PEERID & pid, const MSGTYPE & msg_type, std::string && msg);
-	asio::awaitable<void> _Send(PEERID pid, std::string && msg);
+	asio::awaitable<void> _Send(PEERID pid, std::string msg);
 	asio::awaitable<void> _Connect(IP ip, PORT port, OnConnFunc callback);
 	void _Disconnect(PEERID pid);
 	PEERID _AddPeer(asio::ip::tcp::socket && socket);
