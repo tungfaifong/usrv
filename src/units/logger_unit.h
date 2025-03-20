@@ -15,6 +15,8 @@
 
 NAMESPACE_OPEN
 
+class LogMsg;
+
 class LoggerUnit : public Unit, public std::enable_shared_from_this<LoggerUnit>
 {
 public:
@@ -31,7 +33,7 @@ public:
 		COUNT,
 	};
 
-	LoggerUnit(LEVEL level, std::string file_name, size_t spsc_blk_num);
+	LoggerUnit(LEVEL level, std::string file_name, size_t spsc_size);
 	virtual ~LoggerUnit();
 
 	virtual void OnRegister(const std::shared_ptr<UnitManager> & mgr) override final;
@@ -48,18 +50,35 @@ public:
 private:
 	void _Init();
 	void _LogStart();
-	bool _LogUpdate(intvl_t interval);
-	void _RealLog(LEVEL level, const char * log, uint16_t size);
+	bool _LogUpdate();
+	void _RealLog(LEVEL level, std::string && msg);
 
 private:
+	friend class LogMsgBase;
+
 	LEVEL _level;
 	std::string _file_name;
-	Loop _loop;
+	size_t _spsc_size;
+	asio::io_context _io_context;
+	asio::executor_work_guard<asio::io_context::executor_type> _work_guard;
 	std::thread _log_thread;
-	size_t _spsc_blk_num;
-	std::unordered_map<std::thread::id, std::shared_ptr<SpscQueue>> _log_queues;
+	Loop _loop;
+	std::unordered_map<std::thread::id, std::shared_ptr<SpscQueue<LogMsg>>> _log_queues;
 	std::shared_ptr<spdlog::logger> _logger;
-	char _log_buffer[MAX_LOG_SIZE];
+};
+
+class LogMsg
+{
+public:
+	LogMsg() = default;
+	LogMsg(LoggerUnit::LEVEL level, std::string && msg)
+			: level(level), msg(std::move(msg)) {}
+
+	LogMsg(LogMsg&&) = default;
+	LogMsg& operator=(LogMsg&&) = default;
+
+	LoggerUnit::LEVEL level;
+	std::string msg;
 };
 
 template<typename ... Args> void LoggerUnit::Log(LEVEL level, fmt::format_string<Args...> fmt, Args && ... args)
@@ -69,20 +88,13 @@ template<typename ... Args> void LoggerUnit::Log(LEVEL level, fmt::format_string
 		return;
 	}
 
-	auto log = fmt::format(fmt, std::forward<Args>(args)...);
-
-	SpscQueue::Header header;
-	header.size = log.size();
-	header.data16 = static_cast<uint16_t>(level);
-	header.data32 = 0;
-
 	auto tid = std::this_thread::get_id();
 	if(_log_queues.find(tid) == _log_queues.end())
 	{
-		_log_queues[tid] = std::move(std::make_shared<SpscQueue>(_spsc_blk_num));
+		_log_queues[tid] = std::move(std::make_shared<SpscQueue<LogMsg>>(_spsc_size));
 	}
 
-	_log_queues[tid]->Push(log.c_str(), header);
+	while(!_log_queues[tid]->Push(level, std::move(fmt::format(fmt, std::forward<Args>(args)...)))) {}
 }
 
 NAMESPACE_CLOSE

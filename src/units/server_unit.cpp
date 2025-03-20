@@ -9,11 +9,11 @@
 NAMESPACE_OPEN
 
 // ServerUnit
-ServerUnit::ServerUnit(size_t thread_num, size_t pp_alloc_num, size_t ps_alloc_num, size_t spsc_blk_num): _io_context(UnitManager::Instance()->IOContext()),
+ServerUnit::ServerUnit(size_t thread_num, size_t pp_alloc_num, size_t ps_alloc_num, size_t spsc_size): _io_context(UnitManager::Instance()->IOContext()),
 	_thread_num(thread_num),
 	_pp_alloc_num(pp_alloc_num),
 	_ps_alloc_num(ps_alloc_num),
-	_spsc_blk_num(spsc_blk_num),
+	_spsc_size(spsc_size),
 	_connect_idx(0)
 {
 }
@@ -22,7 +22,7 @@ bool ServerUnit::Init()
 {
 	if(_thread_num == 0)
 	{
-		_servers.push_back(std::move(std::make_shared<Server>(_io_context, 0, _pp_alloc_num, _ps_alloc_num, _spsc_blk_num, shared_from_this())));
+		_servers.push_back(std::move(std::make_shared<Server>(_io_context, 0, _pp_alloc_num, _ps_alloc_num, _spsc_size, shared_from_this())));
 	}
 	else
 	{
@@ -30,7 +30,7 @@ bool ServerUnit::Init()
 		{
 			_io_contexts.emplace_back(std::move(std::make_shared<asio::io_context>()));
 			_work_guards.emplace_back(asio::make_work_guard(*_io_contexts[i]));
-			_servers.emplace_back(std::move(std::make_shared<Server>(*_io_contexts[i], i, _pp_alloc_num, _ps_alloc_num, _spsc_blk_num, shared_from_this())));
+			_servers.emplace_back(std::move(std::make_shared<Server>(*_io_contexts[i], i, _pp_alloc_num, _ps_alloc_num, _spsc_size, shared_from_this())));
 			_io_threads.emplace_back(std::move(std::make_shared<std::thread>([self = shared_from_this(), i](){
 				self->_io_contexts[i]->run();
 			})));
@@ -143,6 +143,7 @@ void ServerUnit::Disconnect(NETID net_id)
 
 void ServerUnit::Recv(NETID net_id, MSGTYPE msg_type, std::string && msg)
 {
+	// 判断线程 进行分发
 	asio::dispatch(_io_context, [self = shared_from_this(), net_id, msg_type, msg = std::move(msg)]() mutable {
 		self->_Recv(net_id, msg_type, std::move(msg));
 	});
@@ -207,7 +208,7 @@ void ServerUnit::_Recv(NETID net_id, MSGTYPE msg_type, std::string && msg)
 }
 
 // Server
-Server::Server(asio::io_context & io_context, size_t tid, size_t pp_alloc_num, size_t ps_alloc_num, size_t spsc_blk_num, const std::shared_ptr<ServerUnit> & unit): _io_context(io_context),
+Server::Server(asio::io_context & io_context, size_t tid, size_t pp_alloc_num, size_t ps_alloc_num, size_t spsc_size, const std::shared_ptr<ServerUnit> & unit): _io_context(io_context),
 	_tid(tid),
 	_peer_pool(pp_alloc_num), _peers(ps_alloc_num),
 	_server_unit(unit)
@@ -246,6 +247,7 @@ bool Server::Send(PEERID pid, std::string && msg)
 		return false;
 	}
 
+	// 区分线程 进行 分发
 	asio::dispatch(_io_context, [self = shared_from_this(), pid, msg = std::move(msg)]() mutable {
 		asio::co_spawn(self->_io_context, self->_Send(pid, std::move(msg)), asio::detached);
 	});

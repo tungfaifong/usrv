@@ -36,7 +36,7 @@ class Peer;
 class ServerUnit : public Unit, public std::enable_shared_from_this<ServerUnit>
 {
 public:
-	ServerUnit(size_t thread_num, size_t pp_alloc_num, size_t ps_alloc_num, size_t spsc_blk_num);
+	ServerUnit(size_t thread_num, size_t pp_alloc_num, size_t ps_alloc_num, size_t spsc_size);
 	virtual ~ServerUnit() = default;
 
 	virtual bool Init() override final;
@@ -66,7 +66,7 @@ private:
 	size_t _thread_num;
 	size_t _pp_alloc_num;
 	size_t _ps_alloc_num;
-	size_t _spsc_blk_num;
+	size_t _spsc_size;
 	std::vector<std::shared_ptr<asio::io_context>> _io_contexts;
 	std::vector<asio::executor_work_guard<asio::io_context::executor_type>> _work_guards;
 	std::vector<std::shared_ptr<Server>> _servers;
@@ -82,7 +82,7 @@ private:
 class Server : public std::enable_shared_from_this<Server>
 {
 public:
-	Server(asio::io_context & io_context, size_t tid, size_t pp_alloc_num, size_t ps_alloc_num, size_t spsc_blk_num, const std::shared_ptr<ServerUnit> & unit);
+	Server(asio::io_context & io_context, size_t tid, size_t pp_alloc_num, size_t ps_alloc_num, size_t spsc_size, const std::shared_ptr<ServerUnit> & unit);
 	virtual ~Server() = default;
 
 	// 可以被主线程调用

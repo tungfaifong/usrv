@@ -8,6 +8,7 @@
 
 #include "asio.hpp"
 
+#include "components/loop.hpp"
 #include "util/singleton.hpp"
 
 NAMESPACE_OPEN
@@ -32,7 +33,7 @@ public:
 private:
 	bool _Init();
 	bool _Start();
-	asio::awaitable<void> _Update();
+	bool _Update();
 	void _Stop();
 	void _Release();
 
@@ -40,8 +41,8 @@ private:
 	intvl_t _interval = 0;
 	asio::io_context _io_context;
 	asio::executor_work_guard<asio::io_context::executor_type> _work_guard;
+	Loop _loop;
 	uint64_t _update_time;
-	asio::steady_timer _update_timer;
 
 	std::unordered_map<std::string, std::shared_ptr<Unit>> _units;
 };

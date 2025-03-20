@@ -157,9 +157,9 @@ bool run_client(uint32_t client_num, uint32_t req_num, size_t thread_num)
 	Stat::req_num = req_num;
 
 	UnitManager::Instance()->Init(10);
-	UnitManager::Instance()->Register("LOGGER", std::move(std::make_shared<LoggerUnit>(LoggerUnit::LEVEL::TRACE, "/logs/client.log", 1 Mi)));
+	UnitManager::Instance()->Register("LOGGER", std::move(std::make_shared<LoggerUnit>(LoggerUnit::LEVEL::TRACE, "/logs/client.log", 1 Ki)));
 	UnitManager::Instance()->Register("TIMER", std::move(std::make_shared<TimerUnit>(1 Ki, 1 Ki)));
-	UnitManager::Instance()->Register("SERVER", std::move(std::make_shared<ServerUnit>(thread_num, 1 Ki, 1 Ki, 4 Mi)));
+	UnitManager::Instance()->Register("SERVER", std::move(std::make_shared<ServerUnit>(thread_num, 1 Ki, 1 Ki, 4 Ki)));
 
 	for(uint32_t i = 0; i < client_num; ++i)
 	{

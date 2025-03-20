@@ -12,7 +12,7 @@
 NAMESPACE_OPEN
 
 UnitManager::UnitManager(): _work_guard(asio::make_work_guard(_io_context)),
-	_update_time(NowMs()), _update_timer(_io_context)
+	_loop(_io_context), _update_time(NowMs())
 {
 
 }
@@ -20,6 +20,9 @@ UnitManager::UnitManager(): _work_guard(asio::make_work_guard(_io_context)),
 void UnitManager::Init(intvl_t interval)
 {
 	_interval = interval;
+	_loop.Init(_interval, [self = shared_from_this()](){
+		return self->_Update();
+	}, true);
 }
 
 bool UnitManager::Register(const std::string & key, std::shared_ptr<Unit> && unit)
@@ -52,7 +55,6 @@ bool UnitManager::Run()
 	ret = _Init() && _Start();
 	if(ret)
 	{
-		asio::co_spawn(_io_context, _Update(), asio::detached);
 		_io_context.run();
 	}
 
@@ -106,21 +108,18 @@ bool UnitManager::_Start()
 	return true;
 }
 
-asio::awaitable<void> UnitManager::_Update()
+bool UnitManager::_Update()
 {
-	while(true)
+	auto now = NowMs();
+	intvl_t interval = now - _update_time;
+	bool busy = false;
+	for (auto & [key, unit] : _units)
 	{
-		auto now = NowMs();
-		for (auto & [key, unit] : _units)
-		{
-			unit->Update(now - _update_time);
-		}
-		_update_time = now;
-
-		_update_timer.expires_after(ms_t(_interval));
-		asio::error_code ec;
-		co_await _update_timer.async_wait(redirect_error(asio::use_awaitable, ec));
+		busy |= unit->Update(interval);
 	}
+	_update_time = now;
+
+	return busy;
 }
 
 void UnitManager::_Stop()

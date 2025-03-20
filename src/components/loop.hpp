@@ -8,6 +8,8 @@
 #include <mutex>
 #include <thread>
 
+#include "asio.hpp"
+
 #include "util/common.h"
 #include "util/time.h"
 
@@ -16,39 +18,18 @@ NAMESPACE_OPEN
 class Loop
 {
 public:
-	using UpdateFunc = std::function<bool(intvl_t)>;
+	using UpdateFunc = std::function<bool()>;
 
-	Loop() = default;
+	Loop(asio::io_context & io_context):_io_context(io_context),_update_timer(_io_context)  {};
 	~Loop() = default;
 
 public:
-	void Init(intvl_t interval, UpdateFunc update)
+	void Init(intvl_t max_interval, UpdateFunc update, bool fixed = false)
 	{
-		_interval = interval;
+		_max_interval = max_interval * MS2NS;
 		_update = update;
-	}
-
-	void Run()
-	{
-		auto now = SysNow();
-		auto last = now;
-		auto interval = Ns2Ms(now - last);
-		auto busy = true;
-		while (!_exit)
-		{
-			now = SysNow();
-			interval = Ns2Ms(now - last);
-			if (interval >= _interval || busy)
-			{
-				last = now;
-				busy = _update(interval);
-			}
-			else
-			{
-				std::this_thread::sleep_for(ns_t(1));
-				busy = true;
-			}
-		}
+		_fixed = fixed;
+		asio::co_spawn(_io_context, _Update(), asio::detached);
 	}
 
 	void Release()
@@ -56,18 +37,45 @@ public:
 		_update = nullptr;
 	}
 
-	void SetExit(bool exit) { _exit = exit; }
-
 	intvl_t Interval() { return _interval; }
 
-	void Notify()
+private:
+	asio::awaitable<void> _Update()
 	{
+		while(true)
+		{
+			auto busy = _update();
+
+			if(_fixed)
+			{
+				_interval = _max_interval;
+			}
+			else
+			{
+				if(busy)
+				{
+					_interval = 1;
+				}
+				else
+				{
+					_interval *= 2;
+					_interval = _interval > _max_interval ? _max_interval : _interval;
+				}
+			}
+			
+			_update_timer.expires_after(ns_t(_interval));
+			asio::error_code ec;
+			co_await _update_timer.async_wait(redirect_error(asio::use_awaitable, ec));
+		}
 	}
 
 private:
-	bool _exit = false;
+	asio::io_context & _io_context;
 	intvl_t _interval;
+	intvl_t _max_interval;
 	UpdateFunc _update;
+	bool _fixed;
+	asio::steady_timer _update_timer;
 };
 
 NAMESPACE_CLOSE
