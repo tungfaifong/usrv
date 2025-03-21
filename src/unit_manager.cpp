@@ -138,6 +138,7 @@ void UnitManager::_Release()
 	{
 		unit->Release();
 	}
+	_units.clear();
 }
 
 NAMESPACE_CLOSE
