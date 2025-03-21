@@ -39,15 +39,16 @@ bool run_server(intvl_t interval, size_t thread_num)
 	auto server = std::dynamic_pointer_cast<ServerUnit>(UnitManager::Instance()->Get("SERVER"));
 
 	server->OnConn([&lua](NETID net_id, IP ip, PORT port) {
-		lua->OnConn(net_id, ip, port);
+		// lua->OnConn(net_id, ip, port);
 	});
 
 	server->OnRecv([&lua](NETID net_id, std::string && msg) {
-		lua->OnRecv(net_id, msg);
+		server::Send(net_id, std::move(msg));
+		// lua->OnRecv(net_id, msg);
 	});
 
 	server->OnDisc([&lua](NETID net_id) {
-		lua->OnDisc(net_id);
+		// lua->OnDisc(net_id);
 	});
 
 	UnitManager::Instance()->Run();

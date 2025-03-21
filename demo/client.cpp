@@ -25,7 +25,7 @@ std::string generate_random_string(size_t length = 12,
 	result.reserve(length);
 
 	for (size_t i = 0; i < length; ++i) {
-	result += charset[distribution(generator)];
+		result += charset[distribution(generator)];
 	}
 
 	return result;
@@ -59,13 +59,14 @@ sys_clock_t Stat::end_clock = SysNow();
 uint32_t Stat::connected_num = 0;
 
 class Client;
+class Mgr;
 
-std::unordered_map<NETID, std::shared_ptr<Client>, NETIDHash> g_Clients;
+std::unordered_map<NETID, std::shared_ptr<Client>> g_Clients;
 
-class Client : public Unit, public std::enable_shared_from_this<Client>
+class Client : public std::enable_shared_from_this<Client>
 {
 public:
-	Client() {}
+	Client(std::shared_ptr<Mgr> mgr):_mgr(mgr) {}
 	~Client() = default;
 
 	virtual bool Start();
@@ -75,6 +76,18 @@ public:
 	NETID _server_net_id = INVALID_NET_ID;
 	sys_clock_t _send_clock;
 	sys_clock_t _recv_clock;
+	std::shared_ptr<Mgr> _mgr;
+};
+
+class Mgr : public Unit, public std::enable_shared_from_this<Mgr>
+{
+public:
+	virtual bool Start();
+	void CheckSend();
+
+	bool start = false;
+
+	std::vector<std::shared_ptr<Client>> clients;
 };
 
 bool Client::Start()
@@ -88,13 +101,15 @@ bool Client::Start()
 		}
 		g_Clients[_server_net_id] = shared_from_this();
 		++Stat::connected_num;
+
+		_mgr->CheckSend();
 	});
 	return true;
 }
 
 void Client::OnRecv(NETID net_id, std::string && msg)
 {
-	// LOGGER_INFO("RECV msg {}", msg);
+	LOGGER_DEBUG("RECV msg {}", msg);
 	_recv_clock = SysNow();
 	intvl_t delay = (_recv_clock - _send_clock).count();
 	Stat::total_delay += delay;
@@ -119,39 +134,40 @@ void Client::OnRecv(NETID net_id, std::string && msg)
 
 void Client::Send()
 {
-	std::string msg = "123"; //generate_random_string(rand() % 100);
-	// LOGGER_INFO("SEND msg {}", msg);
+	std::string msg = "123";
+	if(std::dynamic_pointer_cast<LoggerUnit>(UnitManager::Instance()->Get("LOGGER"))->Level() <= LoggerUnit::LEVEL::DEBUG)
+	{
+		msg = generate_random_string(rand() % 100);
+	}
+	LOGGER_DEBUG("SEND msg {}", msg);
 	server::Send(_server_net_id, std::move(msg));
 	_send_clock = SysNow();
 }
 
-class Mgr : public Unit, public std::enable_shared_from_this<Mgr>
+bool Mgr::Start()
 {
-public:
-	virtual bool Start() {return true;}
-	virtual bool Update(intvl_t interval);
+	for(uint32_t i = 0; i < Stat::client_num; ++i)
+	{
+		clients.emplace_back(std::move(std::make_shared<Client>(shared_from_this())));
+		clients[i]->Start();
+	}
+	return true;
+}
 
-	bool start = false;
-};
-
-bool Mgr::Update(intvl_t interval)
+void Mgr::CheckSend()
 {
-	if(Stat::connected_num == Stat::client_num && !start)
+	if(Stat::connected_num >= Stat::client_num)
 	{
 		Stat::start_clock = SysNow();
 		for(uint32_t i = 0; i < Stat::client_num; ++i)
 		{
-			auto client_key = "CLIENT#"+std::to_string(i+1);
-			auto client = std::dynamic_pointer_cast<Client>(UnitManager::Instance()->Get(client_key));
-			client->Send();
+			clients[i]->Send();
 		}
 		start = true;
 	}
-	
-	return false;
 }
 
-bool run_client(uint32_t client_num, uint32_t req_num, size_t thread_num)
+bool run_client(uint32_t client_num, uint32_t req_num, size_t thread_num, uint32_t info_level)
 {
 	SignalInit();
 
@@ -159,24 +175,14 @@ bool run_client(uint32_t client_num, uint32_t req_num, size_t thread_num)
 	Stat::req_num = req_num;
 
 	UnitManager::Instance()->Init(10);
-	UnitManager::Instance()->Register("LOGGER", std::move(std::make_shared<LoggerUnit>(LoggerUnit::LEVEL::TRACE, "/logs/client.log", 1 Ki)));
+	UnitManager::Instance()->Register("LOGGER", std::move(std::make_shared<LoggerUnit>(LoggerUnit::LEVEL(info_level), "/logs/client.log", 1 Ki)));
 	UnitManager::Instance()->Register("TIMER", std::move(std::make_shared<TimerUnit>(1 Ki, 1 Ki)));
 	UnitManager::Instance()->Register("SERVER", std::move(std::make_shared<ServerUnit>(thread_num, 1 Ki, 1 Ki, 4 Ki)));
-
-	for(uint32_t i = 0; i < client_num; ++i)
-	{
-		auto client_key = "CLIENT#"+std::to_string(i+1);
-		if(!UnitManager::Instance()->Register(client_key.c_str(), std::move(std::make_shared<Client>())))
-		{
-			LOGGER_ERROR("key:{} error", client_key);
-		}
-	}
-
 	UnitManager::Instance()->Register("MGR", std::move(std::make_shared<Mgr>()));
 
 	auto server = std::dynamic_pointer_cast<ServerUnit>(UnitManager::Instance()->Get("SERVER"));
 	server->OnConn([](NETID net_id, IP ip, PORT port){
-		LOGGER_INFO("conn: net_id:{} ip:{} port:{}", net_id.pid, ip, port);
+		// LOGGER_INFO("conn: net_id:{} ip:{} port:{}", net_id.pid, ip, port);
 	});
 	server->OnRecv([](NETID net_id, std::string && msg) {
 		auto client = g_Clients.find(net_id);
@@ -186,7 +192,7 @@ bool run_client(uint32_t client_num, uint32_t req_num, size_t thread_num)
 		}
 	});
 	server->OnDisc([](NETID net_id){
-		LOGGER_INFO("disc: net_id:{}", net_id.pid);
+		// LOGGER_INFO("disc: net_id:{}", net_id.pid);
 	});
 
 	UnitManager::Instance()->Run();

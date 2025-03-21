@@ -37,13 +37,7 @@ struct NETID {
 	TID tid = INVALID_TID;
 	PEERID pid = INVALID_PEER_ID;
 	bool operator==(const NETID& other) const {
-	return tid == other.tid && pid == other.pid;
-	}
-};
-
-struct NETIDHash {
-	bool operator()(const NETID& nid) const {
-		return (nid.tid * 31) ^ nid.pid;
+		return tid == other.tid && pid == other.pid;
 	}
 };
 
@@ -62,5 +56,14 @@ void SignalHandler(int signo);
 void SignalInit();
 
 NAMESPACE_CLOSE
+
+namespace std {
+	template<> 
+	struct hash<usrv::NETID> {
+		size_t operator()(const usrv::NETID& id) const {
+			return (id.tid << 56) | id.pid;
+		}
+	};
+}
 
 #endif // USRV_COMMON_H
