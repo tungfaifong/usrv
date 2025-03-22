@@ -16,7 +16,7 @@ TARGET = $(PATH_BUILD)/main
 SUB_DIR = src src/interfaces src/units src/util demo
 
 # include
-INC_ASIO = -I$(PATH_3RDPARTY)/asio-1.20.0
+INC_ASIO = -I$(PATH_3RDPARTY)/asio-1.30.2
 INC_FMT = -I$(PATH_3RDPARTY)/fmt-8.1.0/include
 INC_JEMALLOC = -I$(PATH_3RDPARTY)/jemalloc-5.3.0/include
 INC_LUA = -I$(PATH_3RDPARTY)/lua-5.4.3/include
@@ -30,11 +30,12 @@ LIB_JEMALLOC = -L$(PATH_3RDPARTY)/jemalloc-5.3.0/lib -ljemalloc
 LIB_LUA = -L$(PATH_3RDPARTY)/lua-5.4.3/lib -llua
 LIB_ALL = $(LIB_FMT) $(LIB_JEMALLOC) $(LIB_LUA)
 
-LINK_FLAGS = $(LIB_ALL) -lpthread -ldl
+LINK_FLAGS = $(LIB_ALL) -lpthread -ldl #-luring
 
 # define
+DEFINE_ASIO = #-DASIO_HAS_IO_URING -DASIO_DISABLE_EPOLL
 DEFINE_SPDLOG = -DSPDLOG_FMT_EXTERNAL
-DEFINE += $(DEFINE_SPDLOG)
+DEFINE += $(DEFINE_ASIO) $(DEFINE_SPDLOG)
 
 $(shell if [ ! -e $(PATH_BUILD) ];then mkdir -p $(PATH_BUILD); fi)
 $(shell for dir in $(SUB_DIR); do if [ ! -e $(PATH_BUILD)/$$dir ];then mkdir -p $(PATH_BUILD)/$$dir; fi; done)
