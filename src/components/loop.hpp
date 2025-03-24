@@ -42,9 +42,12 @@ public:
 private:
 	asio::awaitable<void> _Update()
 	{
+		auto busy = false;
+		auto lasy_busy = busy;
 		while(true)
 		{
-			auto busy = _update();
+			lasy_busy = busy;
+			busy = _update();
 
 			if(_fixed)
 			{
@@ -54,18 +57,28 @@ private:
 			{
 				if(busy)
 				{
-					_interval = NSINTERVAL;
+					_interval = 0;
 				}
 				else
 				{
-					_interval *= 2;
-					_interval = _interval > _max_interval ? _max_interval : _interval;
+					if(lasy_busy)
+					{
+						_interval = NSINTERVAL;
+					}
+					else
+					{
+						_interval *= 2;
+						_interval = _interval > _max_interval ? _max_interval : _interval;
+					}
 				}
 			}
 			
-			_update_timer.expires_after(ns_t(_interval));
-			asio::error_code ec;
-			co_await _update_timer.async_wait(redirect_error(asio::use_awaitable, ec));
+			if(_interval > 0)
+			{
+				_update_timer.expires_after(ns_t(_interval));
+				asio::error_code ec;
+				co_await _update_timer.async_wait(redirect_error(asio::use_awaitable, ec));
+			}
 		}
 	}
 
